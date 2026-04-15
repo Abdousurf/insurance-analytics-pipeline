@@ -1,0 +1,35 @@
+version: 2
+
+models:
+  - name: mart_loss_ratio
+    description: "Loss Ratio (S/P) per LOB, region, and accident year"
+    columns:
+      - name: line_of_business
+        tests:
+          - not_null
+      - name: accident_year
+        tests:
+          - not_null
+      - name: earned_premium_eur
+        tests:
+          - not_null
+
+  - name: mart_claims_frequency
+    description: "Claims frequency and severity analysis by segment"
+    columns:
+      - name: line_of_business
+        tests:
+          - not_null
+      - name: accident_year
+        tests:
+          - not_null
+
+  - name: mart_portfolio_performance
+    description: "Portfolio concentration and performance with reinsurance"
+    columns:
+      - name: line_of_business
+        tests:
+          - not_null
+      - name: total_premium_eur
+        tests:
+          - not_null

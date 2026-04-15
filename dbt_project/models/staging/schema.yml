@@ -1,0 +1,62 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: policies
+        description: Raw insurance policies from synthetic data generator
+      - name: claims
+        description: Raw insurance claims with reserve and payment data
+      - name: contracts
+        description: Reinsurance treaty contracts
+
+models:
+  - name: stg_policies
+    description: "Cleaned and typed insurance policies"
+    columns:
+      - name: policy_id
+        tests:
+          - not_null
+          - unique
+      - name: annual_premium_eur
+        tests:
+          - not_null
+      - name: line_of_business
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["auto", "home", "liability", "health"]
+      - name: inception_date
+        tests:
+          - not_null
+
+  - name: stg_claims
+    description: "Cleaned and validated insurance claims"
+    columns:
+      - name: claim_id
+        tests:
+          - not_null
+          - unique
+      - name: policy_id
+        tests:
+          - not_null
+      - name: ultimate_cost_eur
+        tests:
+          - not_null
+      - name: line_of_business
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["auto", "home", "liability", "health"]
+
+  - name: stg_contracts
+    description: "Normalized reinsurance contracts"
+    columns:
+      - name: contract_id
+        tests:
+          - not_null
+          - unique
+      - name: line_of_business
+        tests:
+          - not_null

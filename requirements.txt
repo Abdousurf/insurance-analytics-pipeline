@@ -1,0 +1,11 @@
+dbt-core==1.7.4
+dbt-duckdb==1.7.2
+duckdb==0.10.0
+apache-airflow==2.8.2
+pandas==2.2.0
+pyarrow==14.0.2
+streamlit==1.31.0
+plotly==5.18.0
+great-expectations==0.18.8
+numpy==1.26.3
+faker==22.5.1

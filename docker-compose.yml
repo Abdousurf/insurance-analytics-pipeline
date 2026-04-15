@@ -1,0 +1,48 @@
+version: "3.8"
+
+services:
+  airflow-init:
+    image: apache/airflow:2.8.2
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
+    command: db init
+    volumes:
+      - airflow_data:/opt/airflow
+
+  airflow-webserver:
+    image: apache/airflow:2.8.2
+    depends_on: [airflow-init]
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
+    volumes:
+      - ./airflow_dags:/opt/airflow/dags
+      - airflow_data:/opt/airflow
+      - ./data:/data
+    ports:
+      - "8080:8080"
+    command: webserver
+
+  airflow-scheduler:
+    image: apache/airflow:2.8.2
+    depends_on: [airflow-init]
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
+    volumes:
+      - ./airflow_dags:/opt/airflow/dags
+      - airflow_data:/opt/airflow
+      - ./data:/data
+    command: scheduler
+
+  dashboard:
+    build: .
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "8501:8501"
+    command: streamlit run dashboard/app.py --server.port 8501
+
+volumes:
+  airflow_data:

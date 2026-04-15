@@ -58,6 +58,19 @@ This project demonstrates a production-grade **Modern Data Stack** applied to P&
          └─────────────────────────┘
 ```
 
+```mermaid
+flowchart LR
+    A["Open Data ONISR\ndata.gouv.fr"] -->|download_opendata.py| B[("Raw Layer\nDuckDB")]
+    C["Synthetic Generator\nPolicies · Claims"] --> B
+    B -->|dbt staging| D["Staging\nCleaned & typed"]
+    D -->|dbt intermediate| E["Intermediate\nBusiness logic"]
+    E -->|dbt marts| F["Marts\nLoss ratio · IBNR"]
+    F --> G["Streamlit Dashboard\nKPIs · Alerts"]
+    H(["Airflow DAG"]) -.->|orchestrates| B
+    H -.-> D
+    H -.-> F
+```
+
 ## Open Data Source
 
 **Dataset principal : ONISR — Accidents corporels de la circulation (data.gouv.fr)**

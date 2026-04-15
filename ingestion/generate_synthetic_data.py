@@ -1,20 +1,37 @@
 """Synthetic Insurance Data Generator.
 
-Generates realistic P&C insurance datasets:
-    - policies: portfolio of active/expired policies
-    - claims: declared claims with reserve and payment amounts
-    - contracts: reinsurance contract treaties
+Creates fake (but realistic) insurance datasets for testing and demos.
+It produces three datasets:
+    - policies: a list of insurance policies (like car, home, health)
+    - claims: insurance claims made by policyholders
+    - contracts: reinsurance agreements (how the insurer shares risk)
 
-Actuarial assumptions:
-    - Loss ratio target: 68-75% (market reference)
-    - Claims frequency: 4-8% depending on LOB
-    - Average severity: calibrated per LOB
+The numbers are designed to look realistic:
+    - Loss ratio target: 68-75% (a typical industry range)
+    - Claims frequency: 4-8% depending on the type of insurance
+    - Average claim cost: adjusted for each type of insurance
 
 Example:
-    Generate all datasets to the default output directory::
+    Create all fake datasets and save them to disk::
 
         $ python ingestion/generate_synthetic_data.py
 """
+
+# ───────────────────────────────────────────────────────
+# WHAT THIS FILE DOES (in plain English):
+#
+# This file creates fake insurance data that looks like real data.
+# It's used for testing the rest of the pipeline without needing
+# actual customer information.
+#
+# It generates:
+#   1. 50,000 insurance policies (car, home, liability, health)
+#   2. Claims filed against those policies (random but realistic)
+#   3. A few reinsurance contracts (agreements with other insurers)
+#
+# All the data gets saved as Parquet files (a compressed data format)
+# in the data/raw/ folder so other parts of the pipeline can use it.
+# ───────────────────────────────────────────────────────
 
 import pandas as pd
 import numpy as np
@@ -22,11 +39,18 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import random
 
+# Set a fixed random seed so the "random" data comes out the same every time
+# This makes results reproducible for testing and demos
 SEED = 42
 np.random.seed(SEED)
 random.seed(SEED)
 
-# ── Actuarial parameters per Line of Business ──────────────────────────────
+# ── Settings for each type of insurance (Line of Business) ───────────────
+# These numbers control how the fake data is generated:
+#   - frequency: what percentage of policies will have a claim
+#   - avg_severity: the average cost of a single claim in euros
+#   - severity_std: how much claim costs vary from the average
+#   - premium_range: the lowest and highest annual premium a customer might pay
 LOB_PARAMS = {
     "Auto": {
         "frequency": 0.07,       # 7% claims rate
@@ -54,9 +78,12 @@ LOB_PARAMS = {
     },
 }
 
+# The French regions where our fake policyholders live
 REGIONS = ["Île-de-France", "Auvergne-Rhône-Alpes", "Provence-Alpes-Côte d'Azur",
            "Occitanie", "Nouvelle-Aquitaine", "Grand Est", "Hauts-de-France", "Bretagne"]
 
+# Some regions are riskier than others — this multiplier adjusts premiums
+# and claim rates. For example, Île-de-France (Paris area) is 25% riskier.
 REGION_RISK_FACTOR = {
     "Île-de-France": 1.25,
     "Auvergne-Rhône-Alpes": 1.05,
@@ -70,38 +97,45 @@ REGION_RISK_FACTOR = {
 
 
 def generate_policies(n: int = 50_000, start_date: str = "2021-01-01") -> pd.DataFrame:
-    """Generate a portfolio of insurance policies.
+    """Create a list of fake insurance policies.
 
-    Creates synthetic policy records with realistic premium distributions
-    calibrated per line of business and adjusted by regional risk factors.
+    Builds a realistic-looking set of policy records. Each policy gets a
+    random insurance type, region, customer age, start/end date, and premium.
+    Premiums are adjusted based on how risky the region is.
 
     Args:
-        n: Number of policies to generate.
-        start_date: Earliest possible inception date in YYYY-MM-DD format.
+        n: How many policies to create (default is 50,000).
+        start_date: The earliest date a policy can start (format: "YYYY-MM-DD").
 
     Returns:
-        DataFrame with columns: policy_id, lob, region, insured_age,
-        inception_date, expiry_date, annual_premium, status, channel.
+        A table with one row per policy, including: policy_id, lob (insurance type),
+        region, insured_age, inception_date, expiry_date, annual_premium, status, channel.
     """
     start = datetime.strptime(start_date, "%Y-%m-%d")
     end = datetime(2024, 12, 31)
 
+    # Decide which types of insurance are most common
+    # Auto is most popular (45%), then Home (30%), Liability (15%), Health (10%)
     lob_choices = list(LOB_PARAMS.keys())
     lob_weights = [0.45, 0.30, 0.15, 0.10]
 
+    # Randomly assign an insurance type, region, and age to each policy
     lobs = np.random.choice(lob_choices, size=n, p=lob_weights)
     regions = np.random.choice(REGIONS, size=n)
     ages = np.random.randint(18, 75, size=n)
 
-    # Inception dates spread over 4 years
+    # Pick a random start date for each policy, spread over the 4-year window
     inception_offsets = np.random.randint(0, (end - start).days, size=n)
     inception_dates = [start + timedelta(days=int(d)) for d in inception_offsets]
+    # Each policy lasts exactly one year
     expiry_dates = [d + timedelta(days=365) for d in inception_dates]
 
-    # Status
+    # Mark each policy as "Active" if it hasn't expired yet, otherwise "Expired"
     today = datetime(2024, 12, 31)
     statuses = ["Active" if exp > today else "Expired" for exp in expiry_dates]
 
+    # Calculate the annual premium for each policy
+    # The premium depends on the insurance type and the region's risk level
     premiums = []
     for lob, region in zip(lobs, regions):
         low, high = LOB_PARAMS[lob]["premium_range"]
@@ -109,6 +143,7 @@ def generate_policies(n: int = 50_000, start_date: str = "2021-01-01") -> pd.Dat
         premium = np.random.uniform(low, high) * risk_factor
         premiums.append(round(premium, 2))
 
+    # Put everything together into a single table
     df = pd.DataFrame({
         "policy_id": [f"POL{str(i).zfill(7)}" for i in range(1, n + 1)],
         "lob": lobs,
@@ -125,51 +160,63 @@ def generate_policies(n: int = 50_000, start_date: str = "2021-01-01") -> pd.Dat
 
 
 def generate_claims(policies: pd.DataFrame) -> pd.DataFrame:
-    """Generate claims based on actuarial frequency/severity assumptions.
+    """Create fake insurance claims based on the policies we generated.
 
-    Simulates claim occurrences using a Poisson process with region-adjusted
-    frequencies. Severities follow a lognormal distribution calibrated per LOB.
-    Includes IBNR simulation via exponential reporting lag.
+    For each policy, this randomly decides if a claim happens (based on the
+    claim rate for that insurance type and region). If a claim does happen,
+    it creates realistic details: when it happened, how much it cost, how
+    much has been paid so far, and whether it's still open.
+
+    It also simulates "late-reported" claims (called IBNR) — claims that
+    happened but the insurer doesn't know about yet because the customer
+    hasn't reported them.
 
     Args:
-        policies: DataFrame of policies as produced by ``generate_policies``.
+        policies: The table of policies (from the generate_policies function).
 
     Returns:
-        DataFrame with columns: claim_id, policy_id, lob, region, claim_date,
-        reporting_date, ultimate_cost, reserve, paid_amount, status, claim_type.
+        A table with one row per claim, including: claim_id, policy_id,
+        lob, region, claim_date, reporting_date, ultimate_cost, reserve,
+        paid_amount, status, claim_type.
     """
     claims_rows = []
     claim_counter = 1
 
+    # Go through each policy one by one to decide if it has any claims
     for _, policy in policies.iterrows():
         lob = policy["lob"]
         params = LOB_PARAMS[lob]
         region_factor = REGION_RISK_FACTOR[policy["region"]]
 
-        # Number of claims for this policy (Poisson)
+        # Randomly decide how many claims this policy has
+        # Uses a Poisson distribution (a standard way to model rare events)
         adj_frequency = params["frequency"] * region_factor
         n_claims = np.random.poisson(adj_frequency)
 
+        # Create each claim with realistic details
         for _ in range(n_claims):
-            # Claim date within policy period
+            # Pick a random date during the policy's coverage period
             inception = pd.Timestamp(policy["inception_date"])
             expiry = pd.Timestamp(policy["expiry_date"])
             claim_offset = np.random.randint(0, max((expiry - inception).days, 1))
             claim_date = inception + timedelta(days=claim_offset)
 
-            # Severity: lognormal
+            # Decide how much this claim costs using a lognormal distribution
+            # (most claims are small, but a few are very expensive)
             mu = np.log(params["avg_severity"])
             sigma = params["severity_std"] / params["avg_severity"]
             severity = np.random.lognormal(mu, min(sigma, 1.5))
             severity = round(max(severity, 100), 2)
 
-            # Reporting lag (IBNR simulation): 1-90 days
+            # Simulate how long it takes the customer to report the claim
+            # Most report quickly, but some take weeks or months
             reporting_lag = int(np.random.exponential(15))
             reporting_date = claim_date + timedelta(days=max(1, reporting_lag))
 
-            # Reserve and payments
+            # Set the money aside (reserve) and track how much has been paid out
             reserve = round(severity * np.random.uniform(0.8, 1.3), 2)
             paid = round(severity * np.random.uniform(0.0, 1.0), 2) if np.random.rand() > 0.3 else 0.0
+            # A claim is "Closed" once we've paid out most of what we owe
             status = "Closed" if paid >= severity * 0.9 else "Open"
 
             claims_rows.append({
@@ -194,14 +241,15 @@ def generate_claims(policies: pd.DataFrame) -> pd.DataFrame:
 
 
 def generate_reinsurance_contracts() -> pd.DataFrame:
-    """Generate XL reinsurance treaty contracts.
+    """Create a small set of fake reinsurance agreements.
 
-    Creates a static set of Excess of Loss and Quota Share treaty definitions
-    for the 2023 underwriting year.
+    Reinsurance is when an insurance company pays another company to help
+    cover big losses. This creates a few sample contracts for the year 2023.
 
     Returns:
-        DataFrame with columns: contract_id, lob, treaty_type, retention,
-        limit, reinstatements, premium_rate, effective_date, expiry_date.
+        A table with one row per contract, including: contract_id, lob,
+        treaty_type, retention (how much the insurer keeps), limit (max payout),
+        reinstatements, premium_rate, effective_date, expiry_date.
     """
     treaties = [
         {
@@ -242,30 +290,36 @@ def generate_reinsurance_contracts() -> pd.DataFrame:
 
 
 def main():
-    """Run the full synthetic data generation pipeline.
+    """Run the complete fake data creation process.
 
-    Generates policies, claims, and reinsurance contracts, writes them as
-    Parquet files to ``data/raw/``, and prints an actuarial summary.
+    Creates all three datasets (policies, claims, and reinsurance contracts),
+    saves them as compressed files in the data/raw/ folder, and prints a
+    summary showing how realistic the numbers look.
     """
+    # Create the output folder if it doesn't exist yet
     output_dir = Path(__file__).parent.parent / "data" / "raw"
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Step 1: Generate the policies and save them
     print("Generating policies...")
     policies = generate_policies(n=50_000)
     policies.to_parquet(output_dir / "policies.parquet", index=False)
     print(f"  ✓ {len(policies):,} policies generated")
 
+    # Step 2: Generate claims for those policies and save them
     print("Generating claims...")
     claims = generate_claims(policies)
     claims.to_parquet(output_dir / "claims.parquet", index=False)
     print(f"  ✓ {len(claims):,} claims generated")
 
+    # Step 3: Generate reinsurance contracts and save them
     print("Generating reinsurance contracts...")
     contracts = generate_reinsurance_contracts()
     contracts.to_parquet(output_dir / "contracts.parquet", index=False)
     print(f"  ✓ {len(contracts)} treaties generated")
 
-    # Summary stats
+    # Print a summary for each insurance type showing the key metrics
+    # S/P = loss ratio (how much paid out vs. collected), Freq = claim rate
     print("\n── Actuarial Summary ──────────────────────────────")
     for lob in ["Auto", "Home", "Liability", "Health"]:
         pol = policies[policies["lob"] == lob]

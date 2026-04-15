@@ -1,0 +1,16 @@
+# Paramètres DVC — versionnés avec le code
+opendata:
+  years: [2022]
+  source: onisr
+  url_base: "https://www.data.gouv.fr/api/1/datasets/5cebfa8c8b4c41648d634f9c/"
+
+synthetic:
+  n_policies: 50000
+  n_claims: 12000
+  seed: 42
+  start_year: 2019
+  end_year: 2023
+
+dbt:
+  target: dev
+  threads: 4

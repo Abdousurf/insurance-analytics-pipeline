@@ -1,0 +1,51 @@
+# DVC Pipeline — Insurance Analytics (DataOps)
+# Versionne les données et les étapes de transformation
+# Commandes : dvc repro | dvc dag | dvc metrics show
+
+stages:
+
+  download_opendata:
+    cmd: python ingestion/download_opendata.py --years 2022
+    deps:
+      - ingestion/download_opendata.py
+    outs:
+      - data/raw/onisr/:
+          cache: true
+          persist: false
+    params:
+      - params.yaml:
+          - opendata.years
+
+  generate_synthetic:
+    cmd: python ingestion/generate_synthetic_data.py
+    deps:
+      - ingestion/generate_synthetic_data.py
+    outs:
+      - data/raw/synthetic/:
+          cache: true
+
+  dbt_transform:
+    cmd: |
+      cd dbt_project
+      dbt deps
+      dbt run --target prod
+      dbt test --target prod
+    deps:
+      - dbt_project/models/
+      - dbt_project/tests/
+      - data/raw/
+    outs:
+      - data/processed/:
+          cache: true
+    metrics:
+      - data/metrics/dbt_test_results.json:
+          cache: false
+
+  data_quality:
+    cmd: python scripts/run_great_expectations.py
+    deps:
+      - data/processed/
+      - great_expectations/expectations/
+    metrics:
+      - data/metrics/data_quality_report.json:
+          cache: false

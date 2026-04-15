@@ -1,8 +1,12 @@
-"""
-Insurance Analytics Dashboard
-==============================
+"""Insurance Analytics Dashboard.
+
 Streamlit dashboard consuming dbt marts from DuckDB.
 Displays: Loss Ratio, Claims Frequency, Severity, IBNR alerts.
+
+Example:
+    Run the dashboard with Streamlit::
+
+        $ streamlit run dashboard/app.py
 """
 
 import streamlit as st
@@ -22,6 +26,14 @@ st.set_page_config(
 
 @st.cache_data(ttl=300)
 def load_mart(table: str) -> pd.DataFrame:
+    """Load a dbt mart table from the DuckDB warehouse.
+
+    Args:
+        table: Name of the mart table to query.
+
+    Returns:
+        DataFrame containing all rows from the specified table.
+    """
     con = duckdb.connect(str(DB_PATH), read_only=True)
     df = con.execute(f"SELECT * FROM {table}").df()
     con.close()
@@ -29,6 +41,15 @@ def load_mart(table: str) -> pd.DataFrame:
 
 
 def kpi_card(col, title: str, value: str, delta: str = None, color: str = "#1f77b4"):
+    """Render a styled KPI card in a Streamlit column.
+
+    Args:
+        col: Streamlit column object to render into.
+        title: KPI label displayed above the value.
+        value: Formatted KPI value string.
+        delta: Optional secondary text shown below the value.
+        color: Hex color for the card accent and background tint.
+    """
     col.markdown(f"""
     <div style="background:{color}15; border-left:4px solid {color};
                 padding:16px; border-radius:8px; margin-bottom:8px">

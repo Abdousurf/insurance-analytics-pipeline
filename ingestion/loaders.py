@@ -1,7 +1,11 @@
-"""
-Data Loaders
-=============
+"""Data Loaders.
+
 Load raw Parquet/CSV data into DuckDB warehouse for dbt consumption.
+
+Example:
+    Load all raw datasets into DuckDB::
+
+        $ python -m ingestion.loaders
 """
 
 import duckdb
@@ -18,7 +22,18 @@ def load_parquet_to_duckdb(
     schema: str = "raw",
     con: duckdb.DuckDBPyConnection | None = None,
 ) -> int:
-    """Load a Parquet file into a DuckDB table, replacing if exists."""
+    """Load a Parquet file into a DuckDB table, replacing if exists.
+
+    Args:
+        parquet_path: Filesystem path to the Parquet file.
+        table_name: Target table name in DuckDB.
+        schema: DuckDB schema to create the table in.
+        con: Optional existing DuckDB connection. If None, a new connection
+            is opened and closed after the operation.
+
+    Returns:
+        Number of rows loaded into the table.
+    """
     should_close = con is None
     if con is None:
         con = duckdb.connect(str(DB_PATH))
@@ -41,7 +56,18 @@ def load_csv_to_duckdb(
     schema: str = "raw",
     con: duckdb.DuckDBPyConnection | None = None,
 ) -> int:
-    """Load a CSV file into a DuckDB table, replacing if exists."""
+    """Load a CSV file into a DuckDB table, replacing if exists.
+
+    Args:
+        csv_path: Filesystem path to the CSV file.
+        table_name: Target table name in DuckDB.
+        schema: DuckDB schema to create the table in.
+        con: Optional existing DuckDB connection. If None, a new connection
+            is opened and closed after the operation.
+
+    Returns:
+        Number of rows loaded into the table.
+    """
     should_close = con is None
     if con is None:
         con = duckdb.connect(str(DB_PATH))
@@ -59,7 +85,14 @@ def load_csv_to_duckdb(
 
 
 def load_all_raw_data() -> dict[str, int]:
-    """Load all raw Parquet files into DuckDB."""
+    """Load all raw Parquet files into DuckDB.
+
+    Iterates over the expected raw datasets (policies, claims, contracts)
+    and loads each into the ``raw`` schema. Missing files are skipped.
+
+    Returns:
+        Mapping of table name to row count for each successfully loaded table.
+    """
     con = duckdb.connect(str(DB_PATH))
     con.execute("CREATE SCHEMA IF NOT EXISTS raw")
 

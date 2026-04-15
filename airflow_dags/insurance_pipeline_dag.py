@@ -1,8 +1,15 @@
-"""
-Insurance Analytics Pipeline DAG
-==================================
+"""Insurance Analytics Pipeline DAG.
+
 Orchestrates the full pipeline: data generation -> DuckDB load -> dbt run -> dbt test.
 Schedule: daily at 06:00 UTC.
+
+Tasks:
+    1. generate_data: Create synthetic policy, claim, and contract datasets.
+    2. load_to_duckdb: Ingest raw Parquet files into the DuckDB warehouse.
+    3. dbt_run_staging: Run dbt staging models.
+    4. dbt_run_marts: Run dbt intermediate and mart models.
+    5. dbt_test: Execute dbt tests.
+    6. notify_success: Log pipeline completion.
 """
 
 from datetime import datetime, timedelta
@@ -26,6 +33,11 @@ default_args = {
 
 
 def generate_data():
+    """Run the synthetic data generation pipeline.
+
+    Imports and executes the main entry point from the ingestion module
+    to produce raw Parquet datasets.
+    """
     import sys
     sys.path.insert(0, PROJECT_DIR)
     from ingestion.generate_synthetic_data import main
@@ -33,6 +45,11 @@ def generate_data():
 
 
 def load_to_duckdb():
+    """Load raw Parquet files into the DuckDB warehouse.
+
+    Imports the loader module and ingests all available raw datasets
+    into the ``raw`` schema, logging row counts per table.
+    """
     import sys
     sys.path.insert(0, PROJECT_DIR)
     from ingestion.loaders import load_all_raw_data
@@ -42,10 +59,20 @@ def load_to_duckdb():
 
 
 def notify_success(context):
+    """Log a success message when the pipeline completes.
+
+    Args:
+        context: Airflow task instance context dictionary.
+    """
     print(f"Pipeline completed successfully at {datetime.now()}")
 
 
 def notify_failure(context):
+    """Log an error message when a pipeline task fails.
+
+    Args:
+        context: Airflow task instance context dictionary.
+    """
     task = context.get("task_instance")
     print(f"Pipeline FAILED: task={task.task_id}, execution_date={context['ds']}")
 

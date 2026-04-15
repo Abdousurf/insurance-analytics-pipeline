@@ -1,15 +1,19 @@
-"""
-Synthetic Insurance Data Generator
-===================================
+"""Synthetic Insurance Data Generator.
+
 Generates realistic P&C insurance datasets:
-- policies: portfolio of active/expired policies
-- claims: declared claims with reserve and payment amounts
-- contracts: reinsurance contract treaties
+    - policies: portfolio of active/expired policies
+    - claims: declared claims with reserve and payment amounts
+    - contracts: reinsurance contract treaties
 
 Actuarial assumptions:
-- Loss ratio target: 68-75% (market reference)
-- Claims frequency: 4-8% depending on LOB
-- Average severity: calibrated per LOB
+    - Loss ratio target: 68-75% (market reference)
+    - Claims frequency: 4-8% depending on LOB
+    - Average severity: calibrated per LOB
+
+Example:
+    Generate all datasets to the default output directory::
+
+        $ python ingestion/generate_synthetic_data.py
 """
 
 import pandas as pd
@@ -66,7 +70,19 @@ REGION_RISK_FACTOR = {
 
 
 def generate_policies(n: int = 50_000, start_date: str = "2021-01-01") -> pd.DataFrame:
-    """Generate a portfolio of insurance policies."""
+    """Generate a portfolio of insurance policies.
+
+    Creates synthetic policy records with realistic premium distributions
+    calibrated per line of business and adjusted by regional risk factors.
+
+    Args:
+        n: Number of policies to generate.
+        start_date: Earliest possible inception date in YYYY-MM-DD format.
+
+    Returns:
+        DataFrame with columns: policy_id, lob, region, insured_age,
+        inception_date, expiry_date, annual_premium, status, channel.
+    """
     start = datetime.strptime(start_date, "%Y-%m-%d")
     end = datetime(2024, 12, 31)
 
@@ -109,7 +125,19 @@ def generate_policies(n: int = 50_000, start_date: str = "2021-01-01") -> pd.Dat
 
 
 def generate_claims(policies: pd.DataFrame) -> pd.DataFrame:
-    """Generate claims based on actuarial frequency/severity assumptions."""
+    """Generate claims based on actuarial frequency/severity assumptions.
+
+    Simulates claim occurrences using a Poisson process with region-adjusted
+    frequencies. Severities follow a lognormal distribution calibrated per LOB.
+    Includes IBNR simulation via exponential reporting lag.
+
+    Args:
+        policies: DataFrame of policies as produced by ``generate_policies``.
+
+    Returns:
+        DataFrame with columns: claim_id, policy_id, lob, region, claim_date,
+        reporting_date, ultimate_cost, reserve, paid_amount, status, claim_type.
+    """
     claims_rows = []
     claim_counter = 1
 
@@ -166,7 +194,15 @@ def generate_claims(policies: pd.DataFrame) -> pd.DataFrame:
 
 
 def generate_reinsurance_contracts() -> pd.DataFrame:
-    """Generate XL reinsurance treaty contracts."""
+    """Generate XL reinsurance treaty contracts.
+
+    Creates a static set of Excess of Loss and Quota Share treaty definitions
+    for the 2023 underwriting year.
+
+    Returns:
+        DataFrame with columns: contract_id, lob, treaty_type, retention,
+        limit, reinstatements, premium_rate, effective_date, expiry_date.
+    """
     treaties = [
         {
             "contract_id": "XL-AUTO-2023",
@@ -206,6 +242,11 @@ def generate_reinsurance_contracts() -> pd.DataFrame:
 
 
 def main():
+    """Run the full synthetic data generation pipeline.
+
+    Generates policies, claims, and reinsurance contracts, writes them as
+    Parquet files to ``data/raw/``, and prints an actuarial summary.
+    """
     output_dir = Path(__file__).parent.parent / "data" / "raw"
     output_dir.mkdir(parents=True, exist_ok=True)
 

@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: int_claims_enriched
-    description: "Claims enriched with policy-level attributes for analysis"
+    description: "Sinistres enrichis avec les attributs de la police pour l'analyse"
     columns:
       - name: claim_id
         tests:
@@ -13,7 +13,7 @@ models:
           - not_null
 
   - name: int_portfolio
-    description: "Portfolio aggregation by segment with reinsurance info"
+    description: "Agrégation du portefeuille par segment avec informations de réassurance"
     columns:
       - name: line_of_business
         tests:

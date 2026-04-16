@@ -1,19 +1,20 @@
 -- assert_loss_ratio_positive.sql
--- Custom dbt singular test
+-- Test singulier dbt personnalisé
 --
--- Asserts that no row in int_claims_enriched has a negative loss_ratio.
+-- Vérifie qu'aucune ligne de int_claims_enriched n'a un ratio S/P négatif.
 --
--- A negative loss_ratio would indicate that either:
---   (a) ultimate_cost_eur is recorded as a negative value — data quality issue, or
---   (b) the macro division produced an arithmetic error.
+-- Un ratio S/P négatif indiquerait que :
+--   (a) ultimate_cost_eur est enregistré avec une valeur négative — problème de qualité de données, ou
+--   (b) la division dans la macro a produit une erreur arithmétique.
 --
--- Both cases represent a data integrity violation and should fail the pipeline.
+-- Les deux cas représentent une violation d'intégrité des données et doivent
+-- faire échouer le pipeline.
 --
--- dbt convention: this query must return 0 rows to PASS.
--- Any row returned is treated as a test failure.
+-- Convention dbt : cette requête doit retourner 0 ligne pour PASSER.
+-- Toute ligne retournée est traitée comme un échec de test.
 --
--- Applies to: int_claims_enriched (grain = claim)
--- Related tests: assert_paid_not_exceeds_ultimate.sql, generic not_null / positive_value tests
+-- S'applique à : int_claims_enriched (grain = sinistre)
+-- Tests associés : assert_paid_not_exceeds_ultimate.sql, tests génériques not_null / positive_value
 
 select
     claim_id,
@@ -26,9 +27,9 @@ select
     loss_ratio
 from {{ ref('int_claims_enriched') }}
 where
-    -- Only evaluate rows where a loss ratio can be computed
+    -- Évaluer uniquement les lignes où un ratio S/P peut être calculé
     annual_premium_eur is not null
     and annual_premium_eur > 0
     and loss_ratio is not null
-    -- Violation: negative loss ratio
+    -- Violation : ratio S/P négatif
     and loss_ratio < 0

@@ -1,36 +1,37 @@
 {#
   actuarial_metrics.sql
   =====================
-  Reusable dbt macros for core actuarial KPIs.
+  Macros dbt réutilisables pour les KPIs actuariels centraux.
 
-  Macros defined here:
-    - loss_ratio(losses, premiums)       → incurred S/P ratio (null-safe)
-    - burning_cost(losses, exposure)     → normalised cost per unit of exposure
+  Macros définies ici :
+    - loss_ratio(losses, premiums)       → ratio S/P (null-safe)
+    - burning_cost(losses, exposure)     → coût normalisé par unité d'exposition
 
-  Usage examples:
+  Exemples d'utilisation :
     {{ loss_ratio('ultimate_cost_eur', 'annual_premium_eur') }}
     {{ burning_cost('ultimate_cost_eur', 'duration_years') }}
 
-  Both macros return NULL when the denominator is zero or NULL, preventing
-  division-by-zero errors without silently masking data issues.
+  Les deux macros retournent NULL lorsque le dénominateur est zéro ou NULL,
+  ce qui empêche les erreurs de division par zéro sans masquer silencieusement
+  les problèmes de données.
 #}
 
 
 {# ─────────────────────────────────────────────────────────────────────────────
    loss_ratio(losses, premiums)
    ─────────────────────────────────────────────────────────────────────────────
-   Calculates the Loss Ratio (also called S/P — Sinistres sur Primes in French
-   actuarial convention): the ratio of incurred losses to earned premiums.
+   Calcule le ratio S/P (Sinistres sur Primes) : le rapport entre les sinistres
+   encourus et les primes acquises.
 
-   Industry benchmark: 68–75% for a balanced P&C portfolio.
+   Référence marché : 68–75 % pour un portefeuille IARD équilibré.
 
-   Args:
-     losses   : Column expression for incurred/ultimate losses (EUR).
-     premiums : Column expression for earned premiums (EUR).
-     decimals : Number of decimal places to round the result (default: 4).
+   Args :
+     losses   : Expression de colonne pour les sinistres encourus/ultimes (EUR).
+     premiums : Expression de colonne pour les primes acquises (EUR).
+     decimals : Nombre de décimales pour l'arrondi du résultat (par défaut : 4).
 
-   Returns:
-     Decimal(precision=decimals) or NULL when premiums = 0.
+   Retourne :
+     Decimal(precision=decimals) ou NULL lorsque les primes = 0.
 #}
 {% macro loss_ratio(losses, premiums, decimals=4) %}
     case
@@ -49,20 +50,21 @@
 {# ─────────────────────────────────────────────────────────────────────────────
    burning_cost(losses, exposure)
    ─────────────────────────────────────────────────────────────────────────────
-   Calculates the Burning Cost: incurred losses divided by the exposure measure
-   (typically policy-years or number of risk units).
+   Calcule le Burning Cost : sinistres encourus divisés par la mesure d'exposition
+   (typiquement police-années ou nombre d'unités de risque).
 
-   Burning cost is used in pricing and experience rating to express the "pure"
-   cost per unit of exposure, stripping out the effect of premium loadings.
+   Le burning cost est utilisé en tarification et en experience rating pour
+   exprimer le coût « pur » par unité d'exposition, en éliminant l'effet
+   des chargements sur la prime.
 
-   Args:
-     losses   : Column expression for incurred/ultimate losses (EUR).
-     exposure : Column expression for the exposure measure (e.g. duration_years).
-     decimals : Number of decimal places to round the result (default: 2).
+   Args :
+     losses   : Expression de colonne pour les sinistres encourus/ultimes (EUR).
+     exposure : Expression de colonne pour la mesure d'exposition (ex. duration_years).
+     decimals : Nombre de décimales pour l'arrondi du résultat (par défaut : 2).
 
-   Returns:
-     Decimal(precision=decimals) representing EUR per unit of exposure,
-     or NULL when exposure = 0.
+   Retourne :
+     Decimal(precision=decimals) représentant l'EUR par unité d'exposition,
+     ou NULL lorsque l'exposition = 0.
 #}
 {% macro burning_cost(losses, exposure, decimals=2) %}
     case
@@ -81,17 +83,17 @@
 {# ─────────────────────────────────────────────────────────────────────────────
    combined_ratio(losses, expenses, premiums)
    ─────────────────────────────────────────────────────────────────────────────
-   Convenience macro that adds the loss ratio and expense ratio to produce the
-   Combined Ratio — the overall profitability indicator for a P&C insurer.
+   Macro de commodité qui additionne le ratio S/P et le ratio de frais pour
+   produire le Ratio Combiné — l'indicateur global de rentabilité d'un assureur IARD.
 
-   Combined Ratio < 100% = underwriting profit.
-   Combined Ratio > 100% = underwriting loss (may still be offset by investment income).
+   Ratio Combiné < 100 % = bénéfice technique.
+   Ratio Combiné > 100 % = perte technique (peut être compensée par les revenus financiers).
 
-   Args:
-     losses   : Incurred losses column expression.
-     expenses : Underwriting expenses column expression.
-     premiums : Earned premiums column expression.
-     decimals : Rounding precision (default: 4).
+   Args :
+     losses   : Expression de colonne pour les sinistres encourus.
+     expenses : Expression de colonne pour les frais de souscription.
+     premiums : Expression de colonne pour les primes acquises.
+     decimals : Précision de l'arrondi (par défaut : 4).
 #}
 {% macro combined_ratio(losses, expenses, premiums, decimals=4) %}
     case

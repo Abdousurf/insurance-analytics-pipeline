@@ -1,5 +1,5 @@
 -- stg_policies.sql
--- Staging model: normalize and enrich raw policy data
+-- Modèle staging : normalisation et enrichissement des données brutes de polices
 
 with source as (
     select * from {{ source('raw', 'policies') }}
@@ -17,7 +17,7 @@ renamed as (
         initcap(status)                             as policy_status,
         channel,
 
-        -- Derived fields
+        -- Champs dérivés
         datediff('day', inception_date, expiry_date) / 365.25 as duration_years,
 
         case

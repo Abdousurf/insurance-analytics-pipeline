@@ -1,6 +1,6 @@
-# Insurance Claims Analytics Pipeline 🏗️
+# Pipeline d'Analytique Assurance 🏗️
 
-> **End-to-end Analytics Engineering pipeline** for insurance claims data — from raw ingestion to business-ready dashboards.
+> **Pipeline d'Analytics Engineering de bout en bout** pour les données de sinistres assurance — de l'ingestion brute aux tableaux de bord métier.
 
 [![Python](https://img.shields.io/badge/Python-3.11-blue)](https://python.org)
 [![dbt](https://img.shields.io/badge/dbt-1.7-orange)](https://getdbt.com)
@@ -10,11 +10,11 @@
 [![DVC](https://img.shields.io/badge/DVC-versioned-945dd6)](https://dvc.org)
 [![Open Data](https://img.shields.io/badge/Open%20Data-ONISR%20data.gouv.fr-blue)](https://www.data.gouv.fr/fr/datasets/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2022/)
 
-## Overview
+## Apercu general
 
-This project demonstrates a production-grade **Modern Data Stack** applied to P&C (Property & Casualty) insurance data. It covers the full analytics engineering lifecycle: ingestion → transformation → testing → serving → visualization.
+Ce projet illustre un **Modern Data Stack** de niveau production applique aux donnees d'assurance IARD (Incendie, Accidents et Risques Divers). Il couvre l'ensemble du cycle d'analytics engineering : ingestion → transformation → tests → exposition → visualisation.
 
-**Business context**: A non-life insurance company needs to monitor claims performance, detect anomalies in loss ratios, and provide actuarial teams with clean, documented data assets.
+**Contexte metier** : Une compagnie d'assurance non-vie doit surveiller la performance des sinistres, detecter les anomalies dans les ratios S/P et fournir aux equipes actuarielles des actifs de donnees propres et documentes.
 
 ## Architecture
 
@@ -29,49 +29,50 @@ This project demonstrates a production-grade **Modern Data Stack** applied to P&
          └────────────┬────────────┘
                       │
          ┌────────────▼────────────┐
-         │   RAW LAYER (DuckDB)    │
-         │  Raw claims, policies,  │
-         │  contracts tables       │
+         │  COUCHE BRUTE (DuckDB)  │
+         │  Tables sinistres,      │
+         │  polices, contrats      │
          └────────────┬────────────┘
                       │
          ┌────────────▼────────────┐
          │   STAGING (dbt)         │
-         │  Cleaned, typed,        │
-         │  renamed sources        │
+         │  Sources nettoyees,     │
+         │  typees, renommees      │
          └────────────┬────────────┘
                       │
          ┌────────────▼────────────┐
          │  INTERMEDIATE (dbt)     │
-         │  Business logic,        │
-         │  joins, enrichments     │
+         │  Logique metier,        │
+         │  jointures, enrichiss.  │
          └────────────┬────────────┘
                       │
          ┌────────────▼────────────┐
          │    MARTS (dbt)          │
-         │  Loss ratio, frequency, │
-         │  portfolio performance  │
+         │  Ratio S/P, frequence,  │
+         │  performance portef.    │
          └────────────┬────────────┘
                       │
          ┌────────────▼────────────┐
          │  DASHBOARD (Streamlit)  │
-         │  KPIs, trends, alerts   │
+         │  KPIs, tendances,       │
+         │  alertes                │
          └─────────────────────────┘
 ```
 
 ```mermaid
 flowchart LR
-    A["Open Data ONISR\ndata.gouv.fr"] -->|download_opendata.py| B[("Raw Layer\nDuckDB")]
-    C["Synthetic Generator\nPolicies · Claims"] --> B
-    B -->|dbt staging| D["Staging\nCleaned & typed"]
-    D -->|dbt intermediate| E["Intermediate\nBusiness logic"]
-    E -->|dbt marts| F["Marts\nLoss ratio · IBNR"]
-    F --> G["Streamlit Dashboard\nKPIs · Alerts"]
-    H(["Airflow DAG"]) -.->|orchestrates| B
+    A["Open Data ONISR\ndata.gouv.fr"] -->|download_opendata.py| B[("Couche brute\nDuckDB")]
+    C["Generateur synthetique\nPolices · Sinistres"] --> B
+    B -->|dbt staging| D["Staging\nNettoyé & typé"]
+    D -->|dbt intermediate| E["Intermediate\nLogique métier"]
+    E -->|dbt marts| F["Marts\nRatio S/P · IBNR"]
+    F --> G["Dashboard Streamlit\nKPIs · Alertes"]
+    H(["DAG Airflow"]) -.->|orchestre| B
     H -.-> D
     H -.-> F
 ```
 
-## Open Data Source
+## Source Open Data
 
 **Dataset principal : ONISR — Accidents corporels de la circulation (data.gouv.fr)**
 
@@ -85,82 +86,82 @@ flowchart LR
 
 Le script `ingestion/download_opendata.py` télécharge et joint automatiquement les 4 fichiers ONISR en un dataset sinistres enrichi compatible avec le schéma dbt.
 
-## Key Features
+## Fonctionnalités clés
 
 - **Open data ONISR** — données réelles de sinistralité routière France (data.gouv.fr)
-- **Synthetic data generator** — realistic P&C insurance dataset (policies, claims, reinsurance)
-- **dbt models** with full lineage, documentation and data tests
-- **Airflow DAG** orchestrating daily pipeline runs
-- **Data quality checks** — null rates, referential integrity, actuarial consistency
-- **Streamlit dashboard** — Loss Ratio, S/P ratio, claims frequency by segment
-- **Docker Compose** — one command to run everything locally
-- **CI/CD** — GitHub Actions : lint → dbt run → dbt test → docs deploy
+- **Générateur de données synthétiques** — jeu de données IARD réaliste (polices, sinistres, réassurance)
+- **Modèles dbt** avec lignage complet, documentation et tests de données
+- **DAG Airflow** orchestrant les exécutions quotidiennes du pipeline
+- **Contrôles de qualité des données** — taux de nulls, intégrité référentielle, cohérence actuarielle
+- **Dashboard Streamlit** — Ratio S/P, fréquence sinistres par segment
+- **Docker Compose** — une seule commande pour tout lancer en local
+- **CI/CD** — GitHub Actions : lint → dbt run → dbt test → déploiement docs
 - **DVC** — versionnage des datasets ONISR et des artefacts dbt
 
-## Tech Stack
+## Stack technique
 
-| Layer | Tool |
-|-------|------|
+| Couche | Outil |
+|--------|-------|
 | Orchestration | Apache Airflow 2.8 |
 | Transformation | dbt-core 1.7 + dbt-duckdb |
-| Storage | DuckDB (local) / compatible with BigQuery, Snowflake |
+| Stockage | DuckDB (local) / compatible BigQuery, Snowflake |
 | Ingestion | Python + Pandas + **API data.gouv.fr** |
 | Dashboard | Streamlit |
-| Testing | dbt tests + Great Expectations |
-| Containerization | Docker Compose |
+| Tests | dbt tests + Great Expectations |
+| Conteneurisation | Docker Compose |
 | **CI/CD** | **GitHub Actions** |
-| **Data versioning** | **DVC 3.x** |
-| **Code quality** | **ruff · black · isort · pre-commit** |
-| **Data observability** | **Great Expectations checkpoints** |
+| **Versionnage des données** | **DVC 3.x** |
+| **Qualité du code** | **ruff · black · isort · pre-commit** |
+| **Observabilité des données** | **Great Expectations checkpoints** |
 
-## Project Structure
+## Structure du projet
 
 ```
 ├── ingestion/
-│   ├── generate_synthetic_data.py   # Realistic insurance data generator
-│   └── loaders.py                   # Data loaders (CSV, Parquet, API)
+│   ├── generate_synthetic_data.py   # Générateur de données assurance réalistes
+│   └── loaders.py                   # Chargeurs de données (CSV, Parquet, API)
 ├── dbt_project/
 │   ├── models/
 │   │   ├── staging/                 # stg_claims, stg_policies, stg_contracts
 │   │   ├── intermediate/            # int_claims_enriched, int_portfolio
 │   │   └── marts/                   # mart_loss_ratio, mart_claims_frequency
-│   ├── tests/                       # Custom data quality tests
-│   └── macros/                      # Reusable SQL macros
+│   ├── tests/                       # Tests personnalisés de qualité des données
+│   └── macros/                      # Macros SQL réutilisables
 ├── airflow_dags/
-│   └── insurance_pipeline_dag.py    # Full pipeline DAG
+│   └── insurance_pipeline_dag.py    # DAG du pipeline complet
 ├── dashboard/
-│   └── app.py                       # Streamlit dashboard
+│   └── app.py                       # Dashboard Streamlit
 └── docker-compose.yml
 ```
 
-## Getting Started
+## Démarrage rapide
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Abdousurf/insurance-analytics-pipeline/blob/main/notebooks/exploration.ipynb)
 
 ```bash
-# Clone the repo
+# Cloner le dépôt
 git clone https://github.com/Abdousurf/insurance-analytics-pipeline
 cd insurance-analytics-pipeline
 
-# Start with Docker
+# Lancer avec Docker
 docker-compose up -d
 
-# Or locally
+# Ou en local
 pip install -r requirements.txt
 python ingestion/generate_synthetic_data.py
 cd dbt_project && dbt run && dbt test
 streamlit run dashboard/app.py
 ```
 
-## Key Metrics Produced
+## Métriques clés produites
 
-- **Loss Ratio (S/P)** by line of business, segment, region
-- **Claims Frequency** — observed vs expected (actuarial basis)
-- **Average Cost per Claim** — severity trends
-- **IBNR Proxy** — late-reported claims detection
-- **Portfolio Concentration** — Herfindahl index by risk factor
+- **Ratio S/P (Loss Ratio)** par branche, segment, région
+- **Fréquence sinistres** — observée vs attendue (base actuarielle)
+- **Coût moyen par sinistre** — tendances de sévérité
+- **Proxy IBNR** — détection des sinistres déclarés tardivement
+- **Concentration du portefeuille** — indice de Herfindahl par facteur de risque
 
-## Data Model
+## Modèle de données
 
 ```
 policies ──┐
@@ -169,10 +170,10 @@ claims ────┘                        └──► mart_claims_frequency
 contracts ──────────────────────────► mart_portfolio_performance
 ```
 
-## Why This Project?
+## Pourquoi ce projet ?
 
-Built by a consultant with 10+ years in actuarial science and data — bringing domain expertise to analytics engineering. The metrics, business rules, and data model reflect real actuarial practices (IBNR, S/P ratio, burning cost).
+Construit par un consultant avec plus de 10 ans d'expérience en science actuarielle et données — combinant expertise métier et analytics engineering. Les métriques, règles de gestion et le modèle de données reflètent des pratiques actuarielles réelles (IBNR, ratio S/P, burning cost).
 
 ---
 
-*Contact: [LinkedIn](https://www.linkedin.com/in/abdou-john/)*
+*Contact : [LinkedIn](https://www.linkedin.com/in/abdou-john/)*

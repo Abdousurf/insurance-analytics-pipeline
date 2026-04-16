@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Data (versionnée par DVC)
+data/raw/
+data/processed/
+data/metrics/
+*.duckdb
+*.duckdb.wal
+
+# Environments
+.env
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# DVC
+/data/*.dvc
+
+# Great Expectations
+great_expectations/uncommitted/
+!great_expectations/uncommitted/.gitkeep
+
+# Pytest
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Ruff
+.ruff_cache/

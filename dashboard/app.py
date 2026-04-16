@@ -1,28 +1,29 @@
-"""Insurance Analytics Dashboard.
+"""Dashboard d'analytique assurance.
 
-A visual reporting tool that shows key insurance numbers and charts.
-It pulls data from our local database and displays it in a web browser
-using Streamlit.
+Un outil de reporting visuel qui affiche les indicateurs clés et les graphiques
+de l'assurance. Il récupère les données de notre base locale et les affiche
+dans un navigateur web via Streamlit.
 
-Example:
-    Run the dashboard with Streamlit::
+Exemple :
+    Lancer le dashboard avec Streamlit ::
 
         $ streamlit run dashboard/app.py
 """
 
 # ───────────────────────────────────────────────────────
-# WHAT THIS FILE DOES (in plain English):
+# CE QUE FAIT CE FICHIER :
 #
-# This file creates a web-based dashboard (a live webpage) that
-# displays insurance performance numbers and charts. It connects
-# to our local database, pulls summary data, and shows:
-#   - Key performance numbers (like loss ratio, premium totals)
-#   - Bar charts comparing business lines and regions
-#   - A trend line showing how loss ratios change over time
-#   - A warning table highlighting segments losing too much money
+# Ce fichier crée un dashboard web (une page interactive) qui
+# affiche les indicateurs de performance assurance et des graphiques.
+# Il se connecte à notre base de données locale, récupère les données
+# de synthèse et affiche :
+#   - Les indicateurs clés de performance (ratio S/P, total des primes)
+#   - Des graphiques en barres comparant les branches et les régions
+#   - Une courbe de tendance montrant l'évolution du ratio S/P
+#   - Un tableau d'alertes signalant les segments déficitaires
 #
-# Anyone on the team can open this in a browser to check
-# how the insurance portfolio is performing.
+# Tout membre de l'équipe peut ouvrir cette page dans un navigateur
+# pour vérifier la performance du portefeuille assurance.
 # ───────────────────────────────────────────────────────
 
 import streamlit as st
@@ -31,31 +32,31 @@ import pandas as pd
 import plotly.express as px
 from pathlib import Path
 
-# This is the location of our local database file on disk
+# Emplacement du fichier de base de données locale sur le disque
 DB_PATH = Path(__file__).parent.parent / "data" / "warehouse.duckdb"
 
-# Set up the browser tab title and page layout
+# Configurer le titre de l'onglet navigateur et la mise en page
 st.set_page_config(
-    page_title="Insurance Analytics",
+    page_title="Analytique Assurance",
     page_icon="📊",
     layout="wide",
 )
 
 
-# This decorator tells Streamlit to remember (cache) the data for 5 minutes
-# so we don't re-read the database on every tiny interaction
+# Ce décorateur indique à Streamlit de mémoriser (mettre en cache) les données pendant 5 minutes
+# pour ne pas relire la base de données à chaque interaction
 @st.cache_data(ttl=300)
 def load_mart(table: str) -> pd.DataFrame:
-    """Pull all data from a summary table in our database.
+    """Récupérer toutes les données d'une table de synthèse dans notre base.
 
-    Opens a read-only connection to our local database, grabs every row
-    from the requested table, and returns it as a spreadsheet-like object.
+    Ouvre une connexion en lecture seule à notre base locale, récupère toutes
+    les lignes de la table demandée et les retourne sous forme de tableau.
 
     Args:
-        table: The name of the summary table to pull data from.
+        table: Le nom de la table de synthèse dont récupérer les données.
 
     Returns:
-        A table (DataFrame) containing all the rows from that database table.
+        Un tableau (DataFrame) contenant toutes les lignes de cette table.
     """
     con = duckdb.connect(str(DB_PATH), read_only=True)
     df = con.execute(f"SELECT * FROM {table}").df()
@@ -64,18 +65,18 @@ def load_mart(table: str) -> pd.DataFrame:
 
 
 def kpi_card(col, title: str, value: str, delta: str = None, color: str = "#1f77b4"):
-    """Display a single highlighted number card on the dashboard.
+    """Afficher une carte d'indicateur mise en valeur sur le dashboard.
 
-    Creates a colored box showing one key metric (like "Loss Ratio: 72%").
-    These cards appear in a row at the top of the dashboard so the user
-    can see the most important numbers at a glance.
+    Crée un encadré coloré montrant une métrique clé (ex. « Ratio S/P : 72 % »).
+    Ces cartes apparaissent en ligne en haut du dashboard pour que l'utilisateur
+    voie les chiffres les plus importants d'un coup d'oeil.
 
     Args:
-        col: The dashboard column where this card should appear.
-        title: The label shown above the number (e.g., "Loss Ratio").
-        value: The formatted number to display (e.g., "72.3%").
-        delta: An optional extra line of text shown below the number.
-        color: The accent color for the card's left border and background tint.
+        col: La colonne du dashboard où cette carte doit apparaître.
+        title: Le libellé affiché au-dessus du chiffre (ex. « Ratio S/P »).
+        value: Le chiffre formaté à afficher (ex. « 72,3 % »).
+        delta: Un texte optionnel affiché sous le chiffre.
+        color: La couleur d'accent pour la bordure gauche et le fond de la carte.
     """
     col.markdown(
         f"""
@@ -90,82 +91,82 @@ def kpi_card(col, title: str, value: str, delta: str = None, color: str = "#1f77
     )
 
 
-# ── Header ────────────────────────────────────────────────────────────────
-# Show the main title and subtitle at the top of the page
-st.title("📊 Insurance Claims Analytics")
-st.caption("P&C Portfolio — End-to-end Analytics Engineering Pipeline")
+# ── En-tête ──────────────────────────────────────────────────────────────
+# Afficher le titre principal et le sous-titre en haut de la page
+st.title("📊 Analytique Sinistres Assurance")
+st.caption("Portefeuille IARD — Pipeline d'Analytics Engineering de bout en bout")
 
-# ── Sidebar filters ────────────────────────────────────────────────────────
-# The sidebar on the left lets users narrow down the data they see
-st.sidebar.header("Filters")
+# ── Filtres dans la barre latérale ────────────────────────────────────────
+# La barre latérale à gauche permet à l'utilisateur de filtrer les données affichées
+st.sidebar.header("Filtres")
 
-# Load the main summary table from the database
+# Charger la table de synthèse principale depuis la base
 df = load_mart("mart_loss_ratio")
 
-# Build the dropdown options from the actual data values
-lob_options = ["All"] + sorted(df["line_of_business"].unique().tolist())
+# Construire les options des menus déroulants à partir des valeurs réelles
+lob_options = ["Toutes"] + sorted(df["line_of_business"].unique().tolist())
 year_options = sorted(df["accident_year"].unique().tolist(), reverse=True)
 
-# Create the filter controls: a dropdown for business line, a multi-select
-# for years, and a toggle to show only high-loss segments
-selected_lob = st.sidebar.selectbox("Line of Business", lob_options)
+# Créer les contrôles de filtre : un menu déroulant pour la branche, une sélection
+# multiple pour les années, et un bouton bascule pour les segments à fort S/P
+selected_lob = st.sidebar.selectbox("Branche", lob_options)
 selected_year = st.sidebar.multiselect(
-    "Accident Year", year_options, default=year_options[:2]
+    "Année de survenance", year_options, default=year_options[:2]
 )
-show_alerts = st.sidebar.toggle("Show High S/P Alerts Only", value=False)
+show_alerts = st.sidebar.toggle("Afficher uniquement les alertes S/P élevé", value=False)
 
-# ── Apply filters ──────────────────────────────────────────────────────────
-# Start with the full dataset and narrow it down based on what the user chose
+# ── Appliquer les filtres ─────────────────────────────────────────────────
+# Partir du jeu de données complet et le restreindre selon les choix de l'utilisateur
 filtered = df.copy()
-if selected_lob != "All":
+if selected_lob != "Toutes":
     filtered = filtered[filtered["line_of_business"] == selected_lob]
 if selected_year:
     filtered = filtered[filtered["accident_year"].isin(selected_year)]
 if show_alerts:
     filtered = filtered[filtered["high_loss_ratio_flag"]]
 
-# ── KPI Row ────────────────────────────────────────────────────────────────
-# Show a row of five key numbers at the top of the dashboard
-st.subheader("Portfolio KPIs")
+# ── Ligne de KPIs ────────────────────────────────────────────────────────
+# Afficher une ligne de cinq indicateurs clés en haut du dashboard
+st.subheader("KPIs du portefeuille")
 k1, k2, k3, k4, k5 = st.columns(5)
 
-# Calculate the key numbers from the filtered data
+# Calculer les indicateurs clés à partir des données filtrées
 total_premium = filtered["earned_premium_eur"].sum()
 total_incurred = filtered["incurred_losses_eur"].sum()
-# Loss ratio = how much we paid out vs. how much we collected in premiums
+# Ratio S/P = combien nous avons payé en sinistres par rapport aux primes encaissées
 overall_lr = total_incurred / total_premium if total_premium > 0 else 0
 total_claims = filtered["claim_count"].sum()
 total_policies = filtered["policy_count"].sum()
-# Claims frequency = what percentage of policies had a claim
+# Fréquence sinistres = pourcentage de polices ayant eu un sinistre
 overall_freq = total_claims / total_policies if total_policies > 0 else 0
-# Average severity = the average cost of a single claim
+# Sévérité moyenne = coût moyen d'un sinistre
 avg_sev = total_incurred / total_claims if total_claims > 0 else 0
-# IBNR = claims that happened but haven't been reported yet
+# IBNR = sinistres survenus mais non encore déclarés
 ibnr_claims = filtered["ibnr_claims_count"].sum()
 ibnr_rate = ibnr_claims / total_claims if total_claims > 0 else 0
 
-# Color the loss ratio card red/yellow/green depending on how good or bad it is
+# Colorer la carte du ratio S/P en rouge/jaune/vert selon le niveau
 lr_color = (
     "#e74c3c" if overall_lr > 0.85 else "#27ae60" if overall_lr < 0.70 else "#f39c12"
 )
 
-# Display each metric in its own card
-kpi_card(k1, "Loss Ratio (S/P)", f"{overall_lr:.1%}", color=lr_color)
-kpi_card(k2, "Earned Premium", f"€{total_premium/1e6:.1f}M", color="#3498db")
-kpi_card(k3, "Incurred Losses", f"€{total_incurred/1e6:.1f}M", color="#e67e22")
-kpi_card(k4, "Claims Frequency", f"{overall_freq:.2%}", color="#9b59b6")
-kpi_card(k5, "IBNR Rate", f"{ibnr_rate:.1%}", color="#1abc9c")
+# Afficher chaque métrique dans sa propre carte
+kpi_card(k1, "Ratio S/P", f"{overall_lr:.1%}", color=lr_color)
+kpi_card(k2, "Primes acquises", f"€{total_premium/1e6:.1f}M", color="#3498db")
+kpi_card(k3, "Charge sinistres", f"€{total_incurred/1e6:.1f}M", color="#e67e22")
+kpi_card(k4, "Fréquence sinistres", f"{overall_freq:.2%}", color="#9b59b6")
+kpi_card(k5, "Taux IBNR", f"{ibnr_rate:.1%}", color="#1abc9c")
 
 st.divider()
 
-# ── Charts ─────────────────────────────────────────────────────────────────
-# Show two charts side by side
+# ── Graphiques ────────────────────────────────────────────────────────────
+# Afficher deux graphiques côte à côte
 col1, col2 = st.columns(2)
 
-# Left chart: a horizontal bar chart comparing loss ratios across business lines
+# Graphique de gauche : barres horizontales comparant les ratios S/P par branche
 with col1:
-    st.subheader("Loss Ratio by Line of Business")
-    # Group the data by business line and calculate each one's loss ratio
+    st.subheader("Ratio S/P par branche")
+    # Regrouper les données par branche et calculer le ratio S/P de chacune
     lob_agg = (
         filtered.groupby("line_of_business")
         .agg(
@@ -186,17 +187,17 @@ with col1:
         color_continuous_scale=["#27ae60", "#f39c12", "#e74c3c"],
         range_color=[0.5, 1.0],
     )
-    # Add a dashed vertical line showing the 75% target
+    # Ajouter une ligne verticale en pointillés indiquant l'objectif de 75 %
     fig.add_vline(
-        x=0.75, line_dash="dash", line_color="gray", annotation_text="Target 75%"
+        x=0.75, line_dash="dash", line_color="gray", annotation_text="Objectif 75 %"
     )
     fig.update_layout(showlegend=False, coloraxis_showscale=False, height=300)
     st.plotly_chart(fig, use_container_width=True)
 
-# Right chart: a bar chart showing how often claims happen in each region
+# Graphique de droite : barres verticales montrant la fréquence sinistres par région
 with col2:
-    st.subheader("Claims Frequency by Region")
-    # Group the data by region and calculate the claim rate
+    st.subheader("Fréquence sinistres par région")
+    # Regrouper les données par région et calculer le taux de sinistralité
     reg_agg = (
         filtered.groupby("region")
         .agg(claims=("claim_count", "sum"), policies=("policy_count", "sum"))
@@ -215,10 +216,10 @@ with col2:
     fig2.update_layout(coloraxis_showscale=False, height=300, xaxis_tickangle=-30)
     st.plotly_chart(fig2, use_container_width=True)
 
-# ── Loss Ratio Trend ────────────────────────────────────────────────────────
-# Show a line chart of how loss ratios have changed over the years
-st.subheader("Loss Ratio Trend by Year & LOB")
-# Group the unfiltered data by year and business line to see the full trend
+# ── Tendance du ratio S/P ────────────────────────────────────────────────
+# Afficher une courbe de l'évolution du ratio S/P au fil des années
+st.subheader("Tendance du ratio S/P par année et branche")
+# Regrouper les données non filtrées par année et branche pour voir la tendance complète
 trend = (
     df.groupby(["accident_year", "line_of_business"])
     .agg(ep=("earned_premium_eur", "sum"), il=("incurred_losses_eur", "sum"))
@@ -231,18 +232,18 @@ fig3 = px.line(
     y="lr",
     color="line_of_business",
     markers=True,
-    labels={"lr": "Loss Ratio", "accident_year": "Year"},
+    labels={"lr": "Ratio S/P", "accident_year": "Année"},
 )
-# Add a dotted horizontal line at 75% to show the target
-fig3.add_hline(y=0.75, line_dash="dot", line_color="gray", annotation_text="Target")
+# Ajouter une ligne horizontale en pointillés à 75 % pour indiquer l'objectif
+fig3.add_hline(y=0.75, line_dash="dot", line_color="gray", annotation_text="Objectif")
 fig3.update_yaxes(tickformat=".0%")
 st.plotly_chart(fig3, use_container_width=True)
 
-# ── Alerts table ────────────────────────────────────────────────────────────
-# Show a warning table for any segments where the loss ratio is dangerously high
+# ── Tableau d'alertes ─────────────────────────────────────────────────────
+# Afficher un tableau d'avertissement pour les segments où le ratio S/P est dangereusement élevé
 alerts = df[df["high_loss_ratio_flag"]].sort_values("loss_ratio", ascending=False)
 if not alerts.empty:
-    st.subheader(f"⚠️ High Loss Ratio Alerts ({len(alerts)} segments)")
+    st.subheader(f"⚠️ Alertes ratio S/P élevé ({len(alerts)} segments)")
     st.dataframe(
         alerts[
             [

@@ -1,4 +1,4 @@
--- Custom test: claim count in mart should match staging total
+-- Test personnalisé : le nombre de sinistres dans le mart doit correspondre au total du staging
 
 with mart_total as (
     select sum(claim_count) as total from {{ ref('mart_loss_ratio') }}

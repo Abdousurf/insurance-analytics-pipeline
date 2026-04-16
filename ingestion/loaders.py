@@ -1,34 +1,35 @@
-"""Data Loaders.
+"""Chargeurs de données.
 
-Takes raw data files and loads them into our local database so the
-rest of the pipeline can work with them.
+Prend les fichiers de données brutes et les charge dans notre base de données
+locale pour que le reste du pipeline puisse les exploiter.
 
-Example:
-    Load all raw datasets into the database::
+Exemple :
+    Charger tous les jeux de données brutes dans la base ::
 
         $ python -m ingestion.loaders
 """
 
 # ───────────────────────────────────────────────────────
-# WHAT THIS FILE DOES (in plain English):
+# CE QUE FAIT CE FICHIER :
 #
-# This file moves data from files on disk into our database.
-# Think of it as an "importer" — it reads data files (Parquet
-# or CSV format) and puts them into DuckDB (our local database)
-# so that later steps in the pipeline can query and transform them.
+# Ce fichier transfère les données depuis les fichiers sur disque
+# vers notre base de données. Considérez-le comme un « importateur » —
+# il lit les fichiers de données (format Parquet ou CSV) et les
+# insère dans DuckDB (notre base de données locale) pour que les
+# étapes suivantes du pipeline puissent les interroger et les transformer.
 #
-# It handles:
-#   - Loading Parquet files (a compressed data format)
-#   - Loading CSV files (plain-text spreadsheet files)
-#   - Loading all the expected raw datasets at once
+# Il gère :
+#   - Le chargement de fichiers Parquet (format de données compressé)
+#   - Le chargement de fichiers CSV (fichiers texte tabulaires)
+#   - Le chargement de tous les jeux de données brutes attendus en une fois
 # ───────────────────────────────────────────────────────
 
 import duckdb
 from pathlib import Path
 
-# Where the raw data files live on disk
+# Emplacement des fichiers de données brutes sur le disque
 RAW_DIR = Path(__file__).parent.parent / "data" / "raw"
-# Where our local database file is stored
+# Emplacement du fichier de base de données locale
 DB_PATH = Path(__file__).parent.parent / "data" / "warehouse.duckdb"
 
 
@@ -38,34 +39,34 @@ def load_parquet_to_duckdb(
     schema: str = "raw",
     con: duckdb.DuckDBPyConnection | None = None,
 ) -> int:
-    """Read a Parquet file and put its contents into a database table.
+    """Lire un fichier Parquet et insérer son contenu dans une table de la base.
 
-    If the table already exists, it gets replaced with the new data.
-    This ensures we always have a fresh copy of the data.
+    Si la table existe déjà, elle est remplacée par les nouvelles données.
+    Cela garantit que nous disposons toujours d'une copie fraîche des données.
 
     Args:
-        parquet_path: The location of the Parquet file on disk.
-        table_name: What to name the table in the database.
-        schema: Which section of the database to put the table in (default: "raw").
-        con: An existing database connection to reuse. If not provided,
-            a new connection is opened and closed automatically.
+        parquet_path: Emplacement du fichier Parquet sur le disque.
+        table_name: Nom à donner à la table dans la base de données.
+        schema: Section de la base dans laquelle placer la table (par défaut : "raw").
+        con: Connexion existante à réutiliser. Si non fournie,
+            une nouvelle connexion est ouverte puis fermée automatiquement.
 
     Returns:
-        The number of rows that were loaded into the table.
+        Le nombre de lignes chargées dans la table.
     """
-    # Keep track of whether we created the connection ourselves
-    # so we know if we should close it when we're done
+    # Mémoriser si nous avons créé la connexion nous-mêmes
+    # pour savoir si nous devons la fermer à la fin
     should_close = con is None
     if con is None:
         con = duckdb.connect(str(DB_PATH))
 
-    # Make sure the schema exists, then replace the table with fresh data
+    # S'assurer que le schéma existe, puis remplacer la table avec les données fraîches
     con.execute(f"CREATE SCHEMA IF NOT EXISTS {schema}")
     con.execute(f"DROP TABLE IF EXISTS {schema}.{table_name}")
     con.execute(
         f"CREATE TABLE {schema}.{table_name} AS SELECT * FROM read_parquet('{parquet_path}')"
     )
-    # Count how many rows were loaded so we can report it
+    # Compter le nombre de lignes chargées pour pouvoir le rapporter
     row_count = con.execute(f"SELECT count(*) FROM {schema}.{table_name}").fetchone()[0]
 
     if should_close:
@@ -79,34 +80,34 @@ def load_csv_to_duckdb(
     schema: str = "raw",
     con: duckdb.DuckDBPyConnection | None = None,
 ) -> int:
-    """Read a CSV file and put its contents into a database table.
+    """Lire un fichier CSV et insérer son contenu dans une table de la base.
 
-    Works the same as the Parquet loader above, but for CSV files
-    (plain-text spreadsheet files). If the table already exists,
-    it gets replaced with the new data.
+    Fonctionne de la même manière que le chargeur Parquet ci-dessus, mais
+    pour les fichiers CSV (fichiers texte tabulaires). Si la table existe
+    déjà, elle est remplacée par les nouvelles données.
 
     Args:
-        csv_path: The location of the CSV file on disk.
-        table_name: What to name the table in the database.
-        schema: Which section of the database to put the table in (default: "raw").
-        con: An existing database connection to reuse. If not provided,
-            a new connection is opened and closed automatically.
+        csv_path: Emplacement du fichier CSV sur le disque.
+        table_name: Nom à donner à la table dans la base de données.
+        schema: Section de la base dans laquelle placer la table (par défaut : "raw").
+        con: Connexion existante à réutiliser. Si non fournie,
+            une nouvelle connexion est ouverte puis fermée automatiquement.
 
     Returns:
-        The number of rows that were loaded into the table.
+        Le nombre de lignes chargées dans la table.
     """
-    # Same pattern as the Parquet loader: track if we own the connection
+    # Même logique que le chargeur Parquet : mémoriser si nous possédons la connexion
     should_close = con is None
     if con is None:
         con = duckdb.connect(str(DB_PATH))
 
-    # Make sure the schema exists, then replace the table with fresh data
+    # S'assurer que le schéma existe, puis remplacer la table avec les données fraîches
     con.execute(f"CREATE SCHEMA IF NOT EXISTS {schema}")
     con.execute(f"DROP TABLE IF EXISTS {schema}.{table_name}")
     con.execute(
         f"CREATE TABLE {schema}.{table_name} AS SELECT * FROM read_csv_auto('{csv_path}')"
     )
-    # Count how many rows were loaded so we can report it
+    # Compter le nombre de lignes chargées pour pouvoir le rapporter
     row_count = con.execute(f"SELECT count(*) FROM {schema}.{table_name}").fetchone()[0]
 
     if should_close:
@@ -115,36 +116,36 @@ def load_csv_to_duckdb(
 
 
 def load_all_raw_data() -> dict[str, int]:
-    """Load all the expected raw data files into the database at once.
+    """Charger tous les fichiers de données brutes attendus dans la base en une fois.
 
-    Goes through each expected dataset (policies, claims, contracts)
-    and loads it into the "raw" section of the database. If a file
-    is missing, it just skips it and moves on.
+    Parcourt chaque jeu de données attendu (polices, sinistres, contrats)
+    et le charge dans la section "raw" de la base de données. Si un fichier
+    est manquant, il est simplement ignoré.
 
     Returns:
-        A dictionary showing how many rows were loaded for each table.
-        For example: {"policies": 50000, "claims": 3200, "contracts": 3}
+        Un dictionnaire indiquant le nombre de lignes chargées par table.
+        Par exemple : {"policies": 50000, "claims": 3200, "contracts": 3}
     """
-    # Open a single connection and reuse it for all the loads
+    # Ouvrir une seule connexion et la réutiliser pour tous les chargements
     con = duckdb.connect(str(DB_PATH))
     con.execute("CREATE SCHEMA IF NOT EXISTS raw")
 
     results = {}
-    # Try to load each of the three expected data files
+    # Tenter de charger chacun des trois fichiers de données attendus
     for name in ["policies", "claims", "contracts"]:
         parquet_path = RAW_DIR / f"{name}.parquet"
         if parquet_path.exists():
             count = load_parquet_to_duckdb(parquet_path, name, "raw", con)
             results[name] = count
-            print(f"  Loaded {name}: {count:,} rows")
+            print(f"  Chargé {name} : {count:,} lignes")
         else:
-            print(f"  Skipped {name}: file not found")
+            print(f"  Ignoré {name} : fichier non trouvé")
 
     con.close()
     return results
 
 
 if __name__ == "__main__":
-    print("Loading raw data into DuckDB...")
+    print("Chargement des données brutes dans DuckDB...")
     load_all_raw_data()
-    print("Done.")
+    print("Terminé.")

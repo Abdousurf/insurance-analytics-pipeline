@@ -1,5 +1,5 @@
 """
-Open Data Ingestion — ONISR Accidents Corporels (data.gouv.fr)
+Ingestion Open Data — ONISR Accidents Corporels (data.gouv.fr)
 ==============================================================
 Source : Bases de données annuelles des accidents corporels de la circulation routière
 URL    : https://www.data.gouv.fr/fr/datasets/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2022/
@@ -12,9 +12,9 @@ Les 4 fichiers ONISR par année :
   - vehicules        : type, motorisation, manœuvre
   - usagers          : âge, sexe, gravité (tué / blessé grave / léger / indemne)
 
-Pourquoi ces données pour un pipeline assurance P&C ?
+Pourquoi ces données pour un pipeline assurance IARD ?
   → Fréquence sinistres auto par segment (âge, région, météo)
-  → Sévérité proxy (gravité des accidents)
+  → Proxy de sévérité (gravité des accidents)
   → Enrichissement du générateur synthétique par des distributions réelles
 """
 
@@ -34,7 +34,7 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 DATA_DIR = Path(__file__).parent.parent / "data" / "raw" / "onisr"
 
-# API data.gouv.fr — dataset ONISR (stable dataset ID)
+# API data.gouv.fr — dataset ONISR (identifiant stable du dataset)
 DATAGOUV_DATASET_ID = "5cebfa8c8b4c41648d634f9c"
 
 # Années disponibles (archives annuelles)
@@ -47,7 +47,7 @@ DATAGOUV_API = "https://www.data.gouv.fr/api/1"
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Fonctions utilitaires
 # ---------------------------------------------------------------------------
 def get_dataset_resources(dataset_id: str) -> list[dict]:
     """Récupère la liste des ressources via l'API data.gouv.fr."""
@@ -81,7 +81,7 @@ def extract_zip(zip_path: Path, extract_to: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Download logic
+# Logique de téléchargement
 # ---------------------------------------------------------------------------
 def download_onisr(years: list[int] = YEARS) -> dict[int, dict[str, Path]]:
     """
@@ -170,7 +170,7 @@ def _fallback_resources() -> list[dict]:
 def build_claims_enriched(years: list[int] = YEARS) -> pd.DataFrame:
     """
     Fusionne les 4 tables ONISR en un dataset sinistres enrichi
-    compatible avec le schéma du pipeline analytics insurance.
+    compatible avec le schéma du pipeline d'analytique assurance.
 
     Colonnes produites :
       accident_id, date, heure, departement, commune,
@@ -206,7 +206,7 @@ def build_claims_enriched(years: list[int] = YEARS) -> pd.DataFrame:
             log.warning("Fichier caractéristiques introuvable pour %s", year)
             continue
 
-        # Colonnes clé ONISR : Num_Acc
+        # Colonne clé ONISR : Num_Acc
         df = carac.copy()
 
         # Jointure lieux
@@ -220,7 +220,7 @@ def build_claims_enriched(years: list[int] = YEARS) -> pd.DataFrame:
             df = df.merge(grav, on="Num_Acc", how="left")
             df = df.merge(nb_vic, on="Num_Acc", how="left")
 
-        # Agrégation véhicules — nb par accident
+        # Agrégation véhicules — nombre par accident
         if not vehic.empty and "Num_Acc" in vehic.columns:
             nb_veh = vehic.groupby("Num_Acc").size().reset_index(name="nb_vehicules")
             df = df.merge(nb_veh, on="Num_Acc", how="left")
@@ -234,7 +234,7 @@ def build_claims_enriched(years: list[int] = YEARS) -> pd.DataFrame:
 
     result = pd.concat(frames, ignore_index=True)
 
-    # Renommage pour cohérence avec le schéma claims du pipeline
+    # Renommage pour cohérence avec le schéma sinistres du pipeline
     rename_map = {
         "Num_Acc": "accident_id",
         "an": "annee",
@@ -262,7 +262,7 @@ def build_claims_enriched(years: list[int] = YEARS) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Entrypoint
+# Point d'entrée
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     import argparse

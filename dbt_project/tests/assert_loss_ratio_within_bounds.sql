@@ -1,5 +1,5 @@
--- Custom test: no segment should have a loss ratio exceeding 500%
--- (sanity check for data quality issues)
+-- Test personnalisé : aucun segment ne doit avoir un ratio S/P supérieur à 500 %
+-- (contrôle de cohérence pour détecter les problèmes de qualité de données)
 
 select
     line_of_business,

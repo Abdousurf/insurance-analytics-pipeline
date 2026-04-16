@@ -1,4 +1,4 @@
--- Custom test: premiums must always be positive in the mart
+-- Test personnalisé : les primes doivent toujours être positives dans le mart
 
 select
     line_of_business,

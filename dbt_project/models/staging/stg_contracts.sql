@@ -1,5 +1,5 @@
 -- stg_contracts.sql
--- Staging model: normalize reinsurance treaty contracts
+-- Modèle staging : normalisation des traités de réassurance
 
 with source as (
     select * from {{ source('raw', 'contracts') }}

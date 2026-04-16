@@ -1,4 +1,4 @@
-# DVC Pipeline — Insurance Analytics (DataOps)
+# Pipeline DVC — Analytique Assurance (DataOps)
 # Versionne les données et les étapes de transformation
 # Commandes : dvc repro | dvc dag | dvc metrics show
 

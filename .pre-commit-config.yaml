@@ -34,7 +34,7 @@ repos:
       - id: debug-statements
       - id: check-merge-conflict
 
-  # Validation YAML (Airflow DAGs, docker-compose)
+  # Validation YAML (DAGs Airflow, docker-compose)
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.35.1
     hooks:

@@ -1,5 +1,5 @@
 -- mart_portfolio_performance.sql
--- Business mart: Portfolio concentration and performance metrics
+-- Mart métier : Métriques de concentration et de performance du portefeuille
 
 {{ config(
     materialized='table',
@@ -58,14 +58,14 @@ final as (
             else null
         end                                         as loss_ratio,
 
-        -- Portfolio concentration: share of total premium
+        -- Concentration du portefeuille : part des primes totales
         case
             when tp.grand_total_premium > 0
             then round(pf.total_premium_eur / tp.grand_total_premium, 6)
             else null
         end                                         as premium_share,
 
-        -- Herfindahl index component (squared share)
+        -- Composante de l'indice de Herfindahl (part au carré)
         case
             when tp.grand_total_premium > 0
             then power(pf.total_premium_eur / tp.grand_total_premium, 2)

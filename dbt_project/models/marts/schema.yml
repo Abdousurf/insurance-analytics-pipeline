@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: mart_loss_ratio
-    description: "Loss Ratio (S/P) per LOB, region, and accident year"
+    description: "Ratio S/P (Loss Ratio) par branche, région et année de survenance"
     columns:
       - name: line_of_business
         tests:
@@ -15,7 +15,7 @@ models:
           - not_null
 
   - name: mart_claims_frequency
-    description: "Claims frequency and severity analysis by segment"
+    description: "Analyse de la fréquence et de la sévérité des sinistres par segment"
     columns:
       - name: line_of_business
         tests:
@@ -25,7 +25,7 @@ models:
           - not_null
 
   - name: mart_portfolio_performance
-    description: "Portfolio concentration and performance with reinsurance"
+    description: "Concentration et performance du portefeuille avec réassurance"
     columns:
       - name: line_of_business
         tests:

@@ -1,5 +1,5 @@
 -- int_claims_enriched.sql
--- Intermediate: join claims with policy details for enriched analysis
+-- Intermédiaire : jointure des sinistres avec les détails de la police pour une analyse enrichie
 
 {{ config(materialized='view') }}
 

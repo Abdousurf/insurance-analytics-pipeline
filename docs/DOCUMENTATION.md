@@ -1,5 +1,5 @@
 # Documentation technique & fonctionnelle
-## Insurance Analytics Pipeline
+## Pipeline d'Analytique Assurance
 
 ---
 

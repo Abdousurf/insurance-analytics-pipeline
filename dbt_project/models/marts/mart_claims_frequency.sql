@@ -1,5 +1,5 @@
 -- mart_claims_frequency.sql
--- Business mart: Claims frequency and severity analysis by segment
+-- Mart métier : Analyse de la fréquence et de la sévérité des sinistres par segment
 
 {{ config(
     materialized='table',

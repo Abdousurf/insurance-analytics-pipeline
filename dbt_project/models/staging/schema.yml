@@ -5,15 +5,15 @@ sources:
     schema: raw
     tables:
       - name: policies
-        description: Raw insurance policies from synthetic data generator
+        description: Polices d'assurance brutes issues du générateur de données synthétiques
       - name: claims
-        description: Raw insurance claims with reserve and payment data
+        description: Sinistres bruts avec données de réserves et de paiements
       - name: contracts
-        description: Reinsurance treaty contracts
+        description: Traités de réassurance
 
 models:
   - name: stg_policies
-    description: "Cleaned and typed insurance policies"
+    description: "Polices d'assurance nettoyées et typées"
     columns:
       - name: policy_id
         tests:
@@ -32,7 +32,7 @@ models:
           - not_null
 
   - name: stg_claims
-    description: "Cleaned and validated insurance claims"
+    description: "Sinistres nettoyés et validés"
     columns:
       - name: claim_id
         tests:
@@ -51,7 +51,7 @@ models:
               values: ["auto", "home", "liability", "health"]
 
   - name: stg_contracts
-    description: "Normalized reinsurance contracts"
+    description: "Contrats de réassurance normalisés"
     columns:
       - name: contract_id
         tests:

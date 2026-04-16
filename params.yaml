@@ -1,4 +1,4 @@
-# Paramètres DVC — versionnés avec le code
+# Paramètres DVC — versionnés avec le code source
 opendata:
   years: [2022]
   source: onisr

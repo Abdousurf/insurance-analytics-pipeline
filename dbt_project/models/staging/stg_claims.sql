@@ -1,6 +1,6 @@
 -- stg_claims.sql
--- Staging model: clean and type-cast raw claims data
--- Applies basic normalization without business logic
+-- Modèle staging : nettoyage et typage des données brutes de sinistres
+-- Applique une normalisation de base sans logique métier
 
 with source as (
     select * from {{ source('raw', 'claims') }}
@@ -20,7 +20,7 @@ renamed as (
         initcap(status)                             as claim_status,
         claim_type,
 
-        -- Derived: IBNR flag (reported > 30 days after claim)
+        -- Dérivé : indicateur IBNR (déclaration > 30 jours après le sinistre)
         datediff('day', claim_date, reporting_date) as reporting_lag_days,
         case
             when datediff('day', claim_date, reporting_date) > 30 then true
@@ -41,7 +41,7 @@ validated as (
     from renamed
     where ultimate_cost_eur >= 0
       and paid_amount_eur >= 0
-      and paid_amount_eur <= ultimate_cost_eur * 1.05  -- allow 5% overpayment tolerance
+      and paid_amount_eur <= ultimate_cost_eur * 1.05  -- tolérance de 5 % de surpaiement
 )
 
 select * from validated

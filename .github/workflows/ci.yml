@@ -1,4 +1,4 @@
-name: CI — Insurance Analytics Pipeline
+name: CI — Pipeline d'Analytique Assurance
 
 on:
   push:
@@ -15,75 +15,75 @@ env:
 
 jobs:
   # ──────────────────────────────────────────────────────────
-  # 1. CODE QUALITY (DevOps gate)
+  # 1. QUALITÉ DU CODE (porte DevOps)
   # ──────────────────────────────────────────────────────────
   code-quality:
-    name: "Code Quality"
+    name: "Qualité du code"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Configurer Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
-      - name: Install dev dependencies
+      - name: Installer les dépendances de développement
         run: |
           pip install ruff black isort mypy pre-commit
 
-      - name: Run pre-commit hooks
+      - name: Exécuter les hooks pre-commit
         run: pre-commit run --all-files
 
   # ──────────────────────────────────────────────────────────
-  # 2. DATA PIPELINE (DataOps gate)
+  # 2. PIPELINE DE DONNÉES (porte DataOps)
   # ──────────────────────────────────────────────────────────
   data-pipeline:
-    name: "dbt + Data Quality"
+    name: "dbt + Qualité des données"
     runs-on: ubuntu-latest
     needs: code-quality
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Configurer Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
-      - name: Install dependencies
+      - name: Installer les dépendances
         run: pip install -r requirements.txt
 
-      - name: Generate synthetic data (fallback si open data indisponible)
+      - name: Générer les données synthétiques (repli si open data indisponible)
         run: python ingestion/generate_synthetic_data.py --rows 10000
 
-      - name: Download open data ONISR (avec timeout gracieux)
+      - name: Télécharger les open data ONISR (avec timeout gracieux)
         run: |
           python ingestion/download_opendata.py --years 2022 || \
-            echo "⚠️ Open data ONISR indisponible — CI continue avec données synthétiques"
+            echo "⚠️ Open data ONISR indisponible — la CI continue avec les données synthétiques"
         timeout-minutes: 5
         continue-on-error: true
 
-      - name: dbt — install deps + compile
+      - name: dbt — installer les dépendances et compiler
         working-directory: dbt_project
         run: |
           dbt deps
           dbt compile
 
-      - name: dbt — run models
+      - name: dbt — exécuter les modèles
         working-directory: dbt_project
         run: dbt run --target ci
 
-      - name: dbt — tests (data quality)
+      - name: dbt — tests (qualité des données)
         working-directory: dbt_project
         run: dbt test --target ci
 
-      - name: dbt — generate docs
+      - name: dbt — générer la documentation
         working-directory: dbt_project
         run: dbt docs generate
 
-      - name: Upload dbt docs
+      - name: Téléverser la documentation dbt
         uses: actions/upload-artifact@v4
         with:
           name: dbt-docs
@@ -91,25 +91,25 @@ jobs:
           retention-days: 7
 
   # ──────────────────────────────────────────────────────────
-  # 3. DATA QUALITY REPORT (DataOps observability)
+  # 3. RAPPORT DE QUALITÉ DES DONNÉES (observabilité DataOps)
   # ──────────────────────────────────────────────────────────
   data-quality-report:
-    name: "Great Expectations — Data Quality"
+    name: "Great Expectations — Qualité des données"
     runs-on: ubuntu-latest
     needs: data-pipeline
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Configurer Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
-      - name: Install dependencies
+      - name: Installer les dépendances
         run: pip install -r requirements.txt
 
-      - name: Run Great Expectations checkpoints
+      - name: Exécuter les checkpoints Great Expectations
         run: |
           python -c "
           import great_expectations as gx
@@ -117,23 +117,23 @@ jobs:
           results = context.run_checkpoint(checkpoint_name='claims_quality_checkpoint')
           if not results['success']:
               import sys; sys.exit(1)
-          " || echo "⚠️ GE checkpoint non configuré — skip"
+          " || echo "⚠️ Checkpoint GE non configuré — ignoré"
         continue-on-error: true
 
   # ──────────────────────────────────────────────────────────
-  # 4. DOCKER BUILD (DevOps)
+  # 4. BUILD DOCKER (DevOps)
   # ──────────────────────────────────────────────────────────
   docker-build:
-    name: "Docker Build"
+    name: "Build Docker"
     runs-on: ubuntu-latest
     needs: code-quality
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Docker images
+      - name: Construire les images Docker
         run: docker compose build
 
-      - name: Smoke test — pipeline up
+      - name: Test de fumée — pipeline opérationnel
         run: |
           docker compose up -d
           sleep 15
@@ -141,10 +141,10 @@ jobs:
           docker compose down
 
   # ──────────────────────────────────────────────────────────
-  # 5. DEPLOY DOCS to GitHub Pages (DevOps)
+  # 5. DÉPLOIEMENT DE LA DOCUMENTATION sur GitHub Pages (DevOps)
   # ──────────────────────────────────────────────────────────
   deploy-docs:
-    name: "Deploy dbt Docs"
+    name: "Déployer la documentation dbt"
     runs-on: ubuntu-latest
     needs: data-pipeline
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -157,7 +157,7 @@ jobs:
           name: dbt-docs
           path: ./docs-site
 
-      - name: Deploy to GitHub Pages
+      - name: Déployer sur GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

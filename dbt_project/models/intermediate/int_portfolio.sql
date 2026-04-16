@@ -1,5 +1,5 @@
 -- int_portfolio.sql
--- Intermediate: portfolio-level aggregation by segment
+-- Intermédiaire : agrégation du portefeuille par segment
 
 {{ config(materialized='view') }}
 

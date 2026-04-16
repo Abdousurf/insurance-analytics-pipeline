@@ -19,7 +19,6 @@ Pourquoi ces données pour un pipeline assurance P&C ?
 """
 
 import logging
-import os
 import zipfile
 from pathlib import Path
 
@@ -90,12 +89,16 @@ def download_onisr(years: list[int] = YEARS) -> dict[int, dict[str, Path]]:
     Retourne un dict {année: {type_fichier: Path}}.
     """
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    log.info("📡 Récupération des ressources data.gouv.fr (dataset %s)…", DATAGOUV_DATASET_ID)
+    log.info(
+        "📡 Récupération des ressources data.gouv.fr (dataset %s)…", DATAGOUV_DATASET_ID
+    )
 
     try:
         resources = get_dataset_resources(DATAGOUV_DATASET_ID)
     except Exception as e:
-        log.warning("⚠️  API data.gouv.fr inaccessible (%s). Utilisation des URLs directes.", e)
+        log.warning(
+            "⚠️  API data.gouv.fr inaccessible (%s). Utilisation des URLs directes.", e
+        )
         resources = _fallback_resources()
 
     downloaded: dict[int, dict[str, Path]] = {}
@@ -108,8 +111,10 @@ def download_onisr(years: list[int] = YEARS) -> dict[int, dict[str, Path]]:
         for ftype in FILE_TYPES:
             # Cherche la ressource correspondant à l'année et au type
             candidates = [
-                r for r in resources
-                if str(year) in r.get("title", "") and ftype in r.get("title", "").lower()
+                r
+                for r in resources
+                if str(year) in r.get("title", "")
+                and ftype in r.get("title", "").lower()
             ]
 
             if not candidates:
@@ -136,14 +141,26 @@ def _fallback_resources() -> list[dict]:
     """URLs directes de secours pour les fichiers ONISR 2021-2022."""
     base = "https://static.data.gouv.fr/resources/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2022"
     return [
-        {"title": "caracteristiques_2022", "url": f"{base}/20231101-082336/ccaracteristiques-2022.csv"},
-        {"title": "lieux_2022",            "url": f"{base}/20231101-082336/lieux-2022.csv"},
-        {"title": "vehicules_2022",        "url": f"{base}/20231101-082336/vehicules-2022.csv"},
-        {"title": "usagers_2022",          "url": f"{base}/20231101-082336/usagers-2022.csv"},
-        {"title": "caracteristiques_2021", "url": f"{base}/20231101-082336/cacteristiques-2021.csv"},
-        {"title": "lieux_2021",            "url": f"{base}/20231101-082336/lieux-2021.csv"},
-        {"title": "vehicules_2021",        "url": f"{base}/20231101-082336/vehicules-2021.csv"},
-        {"title": "usagers_2021",          "url": f"{base}/20231101-082336/usagers-2021.csv"},
+        {
+            "title": "caracteristiques_2022",
+            "url": f"{base}/20231101-082336/ccaracteristiques-2022.csv",
+        },
+        {"title": "lieux_2022", "url": f"{base}/20231101-082336/lieux-2022.csv"},
+        {
+            "title": "vehicules_2022",
+            "url": f"{base}/20231101-082336/vehicules-2022.csv",
+        },
+        {"title": "usagers_2022", "url": f"{base}/20231101-082336/usagers-2022.csv"},
+        {
+            "title": "caracteristiques_2021",
+            "url": f"{base}/20231101-082336/cacteristiques-2021.csv",
+        },
+        {"title": "lieux_2021", "url": f"{base}/20231101-082336/lieux-2021.csv"},
+        {
+            "title": "vehicules_2021",
+            "url": f"{base}/20231101-082336/vehicules-2021.csv",
+        },
+        {"title": "usagers_2021", "url": f"{base}/20231101-082336/usagers-2021.csv"},
     ]
 
 
@@ -166,20 +183,24 @@ def build_claims_enriched(years: list[int] = YEARS) -> pd.DataFrame:
     for year in years:
         year_dir = DATA_DIR / str(year)
         if not year_dir.exists():
-            log.warning("Données manquantes pour %s — exécuter download_onisr() d'abord.", year)
+            log.warning(
+                "Données manquantes pour %s — exécuter download_onisr() d'abord.", year
+            )
             continue
 
         # Lecture des CSVs (séparateur ';' dans les fichiers ONISR)
         def read(name: str) -> pd.DataFrame:
             for fname in year_dir.iterdir():
                 if name in fname.name.lower() and fname.suffix == ".csv":
-                    return pd.read_csv(fname, sep=";", encoding="latin-1", low_memory=False)
+                    return pd.read_csv(
+                        fname, sep=";", encoding="latin-1", low_memory=False
+                    )
             return pd.DataFrame()
 
         carac = read("caract")
         lieux = read("lieux")
         vehic = read("vehic")
-        usag  = read("usag")
+        usag = read("usag")
 
         if carac.empty:
             log.warning("Fichier caractéristiques introuvable pour %s", year)
@@ -216,19 +237,21 @@ def build_claims_enriched(years: list[int] = YEARS) -> pd.DataFrame:
     # Renommage pour cohérence avec le schéma claims du pipeline
     rename_map = {
         "Num_Acc": "accident_id",
-        "an":      "annee",
-        "mois":    "mois",
-        "jour":    "jour",
-        "hrmn":    "heure",
-        "dep":     "departement",
-        "com":     "commune",
-        "atm":     "conditions_meteo",
-        "lum":     "luminosite",
-        "catr":    "type_voie",
-        "surf":    "etat_surface",
-        "grav":    "gravite_max",
+        "an": "annee",
+        "mois": "mois",
+        "jour": "jour",
+        "hrmn": "heure",
+        "dep": "departement",
+        "com": "commune",
+        "atm": "conditions_meteo",
+        "lum": "luminosite",
+        "catr": "type_voie",
+        "surf": "etat_surface",
+        "grav": "gravite_max",
     }
-    result = result.rename(columns={k: v for k, v in rename_map.items() if k in result.columns})
+    result = result.rename(
+        columns={k: v for k, v in rename_map.items() if k in result.columns}
+    )
 
     out_path = DATA_DIR.parent / "processed" / "onisr_claims_enriched.parquet"
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -244,9 +267,17 @@ def build_claims_enriched(years: list[int] = YEARS) -> pd.DataFrame:
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Télécharge et prépare les données ONISR open data")
-    parser.add_argument("--years", nargs="+", type=int, default=YEARS, help="Années à télécharger")
-    parser.add_argument("--skip-download", action="store_true", help="Ne pas re-télécharger si déjà présent")
+    parser = argparse.ArgumentParser(
+        description="Télécharge et prépare les données ONISR open data"
+    )
+    parser.add_argument(
+        "--years", nargs="+", type=int, default=YEARS, help="Années à télécharger"
+    )
+    parser.add_argument(
+        "--skip-download",
+        action="store_true",
+        help="Ne pas re-télécharger si déjà présent",
+    )
     args = parser.parse_args()
 
     if not args.skip_download:

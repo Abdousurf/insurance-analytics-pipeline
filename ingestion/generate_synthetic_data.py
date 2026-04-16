@@ -53,8 +53,8 @@ random.seed(SEED)
 #   - premium_range: the lowest and highest annual premium a customer might pay
 LOB_PARAMS = {
     "Auto": {
-        "frequency": 0.07,       # 7% claims rate
-        "avg_severity": 3_200,   # €
+        "frequency": 0.07,  # 7% claims rate
+        "avg_severity": 3_200,  # €
         "severity_std": 2_800,
         "premium_range": (400, 1_800),
     },
@@ -79,8 +79,16 @@ LOB_PARAMS = {
 }
 
 # The French regions where our fake policyholders live
-REGIONS = ["Île-de-France", "Auvergne-Rhône-Alpes", "Provence-Alpes-Côte d'Azur",
-           "Occitanie", "Nouvelle-Aquitaine", "Grand Est", "Hauts-de-France", "Bretagne"]
+REGIONS = [
+    "Île-de-France",
+    "Auvergne-Rhône-Alpes",
+    "Provence-Alpes-Côte d'Azur",
+    "Occitanie",
+    "Nouvelle-Aquitaine",
+    "Grand Est",
+    "Hauts-de-France",
+    "Bretagne",
+]
 
 # Some regions are riskier than others — this multiplier adjusts premiums
 # and claim rates. For example, Île-de-France (Paris area) is 25% riskier.
@@ -144,18 +152,23 @@ def generate_policies(n: int = 50_000, start_date: str = "2021-01-01") -> pd.Dat
         premiums.append(round(premium, 2))
 
     # Put everything together into a single table
-    df = pd.DataFrame({
-        "policy_id": [f"POL{str(i).zfill(7)}" for i in range(1, n + 1)],
-        "lob": lobs,
-        "region": regions,
-        "insured_age": ages,
-        "inception_date": inception_dates,
-        "expiry_date": expiry_dates,
-        "annual_premium": premiums,
-        "status": statuses,
-        "channel": np.random.choice(["Direct", "Broker", "Online", "Agent"],
-                                     size=n, p=[0.3, 0.35, 0.25, 0.10]),
-    })
+    df = pd.DataFrame(
+        {
+            "policy_id": [f"POL{str(i).zfill(7)}" for i in range(1, n + 1)],
+            "lob": lobs,
+            "region": regions,
+            "insured_age": ages,
+            "inception_date": inception_dates,
+            "expiry_date": expiry_dates,
+            "annual_premium": premiums,
+            "status": statuses,
+            "channel": np.random.choice(
+                ["Direct", "Broker", "Online", "Agent"],
+                size=n,
+                p=[0.3, 0.35, 0.25, 0.10],
+            ),
+        }
+    )
     return df
 
 
@@ -215,26 +228,32 @@ def generate_claims(policies: pd.DataFrame) -> pd.DataFrame:
 
             # Set the money aside (reserve) and track how much has been paid out
             reserve = round(severity * np.random.uniform(0.8, 1.3), 2)
-            paid = round(severity * np.random.uniform(0.0, 1.0), 2) if np.random.rand() > 0.3 else 0.0
+            paid = (
+                round(severity * np.random.uniform(0.0, 1.0), 2)
+                if np.random.rand() > 0.3
+                else 0.0
+            )
             # A claim is "Closed" once we've paid out most of what we owe
             status = "Closed" if paid >= severity * 0.9 else "Open"
 
-            claims_rows.append({
-                "claim_id": f"CLM{str(claim_counter).zfill(8)}",
-                "policy_id": policy["policy_id"],
-                "lob": lob,
-                "region": policy["region"],
-                "claim_date": claim_date.date(),
-                "reporting_date": reporting_date.date(),
-                "ultimate_cost": severity,
-                "reserve": reserve,
-                "paid_amount": paid,
-                "status": status,
-                "claim_type": np.random.choice(
-                    ["Material", "Bodily Injury", "Theft", "Natural Disaster"],
-                    p=[0.5, 0.25, 0.15, 0.10]
-                ),
-            })
+            claims_rows.append(
+                {
+                    "claim_id": f"CLM{str(claim_counter).zfill(8)}",
+                    "policy_id": policy["policy_id"],
+                    "lob": lob,
+                    "region": policy["region"],
+                    "claim_date": claim_date.date(),
+                    "reporting_date": reporting_date.date(),
+                    "ultimate_cost": severity,
+                    "reserve": reserve,
+                    "paid_amount": paid,
+                    "status": status,
+                    "claim_type": np.random.choice(
+                        ["Material", "Bodily Injury", "Theft", "Natural Disaster"],
+                        p=[0.5, 0.25, 0.15, 0.10],
+                    ),
+                }
+            )
             claim_counter += 1
 
     return pd.DataFrame(claims_rows)
@@ -328,7 +347,9 @@ def main():
         incurred = clm["ultimate_cost"].sum()
         lr = incurred / earned if earned > 0 else 0
         freq = len(clm) / len(pol) if len(pol) > 0 else 0
-        print(f"  {lob:12s} | S/P: {lr:.1%} | Freq: {freq:.2%} | Policies: {len(pol):,}")
+        print(
+            f"  {lob:12s} | S/P: {lr:.1%} | Freq: {freq:.2%} | Policies: {len(pol):,}"
+        )
 
 
 if __name__ == "__main__":

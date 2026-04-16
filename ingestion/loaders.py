@@ -26,7 +26,6 @@ Example:
 import duckdb
 from pathlib import Path
 
-
 # Where the raw data files live on disk
 RAW_DIR = Path(__file__).parent.parent / "data" / "raw"
 # Where our local database file is stored

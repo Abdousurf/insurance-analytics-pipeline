@@ -29,7 +29,6 @@ import streamlit as st
 import duckdb
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 from pathlib import Path
 
 # This is the location of our local database file on disk
@@ -41,6 +40,7 @@ st.set_page_config(
     page_icon="📊",
     layout="wide",
 )
+
 
 # This decorator tells Streamlit to remember (cache) the data for 5 minutes
 # so we don't re-read the database on every tiny interaction
@@ -77,14 +77,17 @@ def kpi_card(col, title: str, value: str, delta: str = None, color: str = "#1f77
         delta: An optional extra line of text shown below the number.
         color: The accent color for the card's left border and background tint.
     """
-    col.markdown(f"""
+    col.markdown(
+        f"""
     <div style="background:{color}15; border-left:4px solid {color};
                 padding:16px; border-radius:8px; margin-bottom:8px">
         <div style="font-size:12px; color:#666; margin-bottom:4px">{title}</div>
         <div style="font-size:28px; font-weight:700; color:#222">{value}</div>
         {"<div style='font-size:12px; color:#888'>"+delta+"</div>" if delta else ""}
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
 
 # ── Header ────────────────────────────────────────────────────────────────
@@ -106,7 +109,9 @@ year_options = sorted(df["accident_year"].unique().tolist(), reverse=True)
 # Create the filter controls: a dropdown for business line, a multi-select
 # for years, and a toggle to show only high-loss segments
 selected_lob = st.sidebar.selectbox("Line of Business", lob_options)
-selected_year = st.sidebar.multiselect("Accident Year", year_options, default=year_options[:2])
+selected_year = st.sidebar.multiselect(
+    "Accident Year", year_options, default=year_options[:2]
+)
 show_alerts = st.sidebar.toggle("Show High S/P Alerts Only", value=False)
 
 # ── Apply filters ──────────────────────────────────────────────────────────
@@ -117,7 +122,7 @@ if selected_lob != "All":
 if selected_year:
     filtered = filtered[filtered["accident_year"].isin(selected_year)]
 if show_alerts:
-    filtered = filtered[filtered["high_loss_ratio_flag"] == True]
+    filtered = filtered[filtered["high_loss_ratio_flag"]]
 
 # ── KPI Row ────────────────────────────────────────────────────────────────
 # Show a row of five key numbers at the top of the dashboard
@@ -140,7 +145,9 @@ ibnr_claims = filtered["ibnr_claims_count"].sum()
 ibnr_rate = ibnr_claims / total_claims if total_claims > 0 else 0
 
 # Color the loss ratio card red/yellow/green depending on how good or bad it is
-lr_color = "#e74c3c" if overall_lr > 0.85 else "#27ae60" if overall_lr < 0.70 else "#f39c12"
+lr_color = (
+    "#e74c3c" if overall_lr > 0.85 else "#27ae60" if overall_lr < 0.70 else "#f39c12"
+)
 
 # Display each metric in its own card
 kpi_card(k1, "Loss Ratio (S/P)", f"{overall_lr:.1%}", color=lr_color)
@@ -161,20 +168,28 @@ with col1:
     # Group the data by business line and calculate each one's loss ratio
     lob_agg = (
         filtered.groupby("line_of_business")
-        .agg(earned=("earned_premium_eur", "sum"), incurred=("incurred_losses_eur", "sum"))
+        .agg(
+            earned=("earned_premium_eur", "sum"),
+            incurred=("incurred_losses_eur", "sum"),
+        )
         .assign(loss_ratio=lambda d: d["incurred"] / d["earned"])
         .reset_index()
         .sort_values("loss_ratio", ascending=True)
     )
     fig = px.bar(
-        lob_agg, x="loss_ratio", y="line_of_business",
-        orientation="h", text_auto=".1%",
+        lob_agg,
+        x="loss_ratio",
+        y="line_of_business",
+        orientation="h",
+        text_auto=".1%",
         color="loss_ratio",
         color_continuous_scale=["#27ae60", "#f39c12", "#e74c3c"],
         range_color=[0.5, 1.0],
     )
     # Add a dashed vertical line showing the 75% target
-    fig.add_vline(x=0.75, line_dash="dash", line_color="gray", annotation_text="Target 75%")
+    fig.add_vline(
+        x=0.75, line_dash="dash", line_color="gray", annotation_text="Target 75%"
+    )
     fig.update_layout(showlegend=False, coloraxis_showscale=False, height=300)
     st.plotly_chart(fig, use_container_width=True)
 
@@ -190,11 +205,14 @@ with col2:
         .sort_values("freq", ascending=False)
     )
     fig2 = px.bar(
-        reg_agg, x="region", y="freq", text_auto=".2%",
-        color="freq", color_continuous_scale="RdYlGn_r"
+        reg_agg,
+        x="region",
+        y="freq",
+        text_auto=".2%",
+        color="freq",
+        color_continuous_scale="RdYlGn_r",
     )
-    fig2.update_layout(coloraxis_showscale=False, height=300,
-                       xaxis_tickangle=-30)
+    fig2.update_layout(coloraxis_showscale=False, height=300, xaxis_tickangle=-30)
     st.plotly_chart(fig2, use_container_width=True)
 
 # ── Loss Ratio Trend ────────────────────────────────────────────────────────
@@ -208,9 +226,12 @@ trend = (
     .reset_index()
 )
 fig3 = px.line(
-    trend, x="accident_year", y="lr",
-    color="line_of_business", markers=True,
-    labels={"lr": "Loss Ratio", "accident_year": "Year"}
+    trend,
+    x="accident_year",
+    y="lr",
+    color="line_of_business",
+    markers=True,
+    labels={"lr": "Loss Ratio", "accident_year": "Year"},
 )
 # Add a dotted horizontal line at 75% to show the target
 fig3.add_hline(y=0.75, line_dash="dot", line_color="gray", annotation_text="Target")
@@ -219,15 +240,24 @@ st.plotly_chart(fig3, use_container_width=True)
 
 # ── Alerts table ────────────────────────────────────────────────────────────
 # Show a warning table for any segments where the loss ratio is dangerously high
-alerts = df[df["high_loss_ratio_flag"] == True].sort_values("loss_ratio", ascending=False)
+alerts = df[df["high_loss_ratio_flag"]].sort_values("loss_ratio", ascending=False)
 if not alerts.empty:
     st.subheader(f"⚠️ High Loss Ratio Alerts ({len(alerts)} segments)")
     st.dataframe(
-        alerts[["line_of_business", "region", "accident_year",
-                "loss_ratio", "earned_premium_eur", "claim_count"]]
-        .style.format({
-            "loss_ratio": "{:.1%}",
-            "earned_premium_eur": "€{:,.0f}",
-        }),
+        alerts[
+            [
+                "line_of_business",
+                "region",
+                "accident_year",
+                "loss_ratio",
+                "earned_premium_eur",
+                "claim_count",
+            ]
+        ].style.format(
+            {
+                "loss_ratio": "{:.1%}",
+                "earned_premium_eur": "€{:,.0f}",
+            }
+        ),
         use_container_width=True,
     )

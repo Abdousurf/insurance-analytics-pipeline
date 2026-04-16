@@ -42,10 +42,10 @@ DBT_DIR = f"{PROJECT_DIR}/dbt_project"
 # Default settings that apply to every task in this workflow
 default_args = {
     "owner": "analytics-engineering",
-    "depends_on_past": False,           # Each run is independent — don't wait for yesterday's
-    "email_on_failure": True,           # Send an email if something goes wrong
-    "email_on_retry": False,            # Don't send emails for routine retries
-    "retries": 3,                       # Try each step up to 3 times if it fails
+    "depends_on_past": False,  # Each run is independent — don't wait for yesterday's
+    "email_on_failure": True,  # Send an email if something goes wrong
+    "email_on_retry": False,  # Don't send emails for routine retries
+    "retries": 3,  # Try each step up to 3 times if it fails
     "retry_delay": timedelta(minutes=5),  # Wait 5 minutes before retrying
     "retry_exponential_backoff": True,  # Wait longer between each retry attempt
 }
@@ -59,8 +59,10 @@ def generate_data():
     """
     # Add the project folder to Python's search path so we can find our code
     import sys
+
     sys.path.insert(0, PROJECT_DIR)
     from ingestion.generate_synthetic_data import main
+
     main()
 
 
@@ -72,8 +74,10 @@ def load_to_duckdb():
     """
     # Add the project folder to Python's search path so we can find our code
     import sys
+
     sys.path.insert(0, PROJECT_DIR)
     from ingestion.loaders import load_all_raw_data
+
     results = load_all_raw_data()
     # Print a summary of what was loaded
     for table, count in results.items():
@@ -105,9 +109,9 @@ with DAG(
     dag_id="insurance_pipeline",
     default_args=default_args,
     description="End-to-end insurance analytics pipeline",
-    schedule_interval="0 6 * * *",    # Run every day at 6:00 AM UTC
+    schedule_interval="0 6 * * *",  # Run every day at 6:00 AM UTC
     start_date=datetime(2024, 1, 1),  # Start scheduling from this date
-    catchup=False,                     # Don't try to run for past dates we missed
+    catchup=False,  # Don't try to run for past dates we missed
     tags=["insurance", "analytics", "dbt"],
     on_failure_callback=notify_failure,
 ) as dag:
